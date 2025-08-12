@@ -1,0 +1,22 @@
+\contentsline {section}{\numberline {1}Theoretical Framework}{3}{}%
+\contentsline {subsection}{\numberline {1.1}Principle of Reflection and the 2\(\theta \) Rule}{3}{}%
+\contentsline {subsubsection}{\numberline {1.1.1}A First Approximation: Planar Projection}{3}{}%
+\contentsline {subsubsection}{\numberline {1.1.2}Vector Form of Reflection}{4}{}%
+\contentsline {subsection}{\numberline {1.2}Forward Kinematics: From Mirror Angles to Screen Coordinates}{4}{}%
+\contentsline {subsubsection}{\numberline {1.2.1}Full Path Algorithm}{5}{}%
+\contentsline {subsubsection}{\numberline {1.2.2}Ray-Plane Intersection}{5}{}%
+\contentsline {subsection}{\numberline {1.3}Inverse Kinematics: The Challenge of Target-to-Angle Mapping}{6}{}%
+\contentsline {subsubsection}{\numberline {1.3.1}Analytical vs. Numerical IK}{6}{}%
+\contentsline {subsection}{\numberline {1.4}Numerical Solution: The Jacobian Iterative Method}{6}{}%
+\contentsline {subsubsection}{\numberline {1.4.1}Iterative Inverse Kinematic Algorithm}{6}{}%
+\contentsline {section}{\numberline {2}System Dynamics and Control}{8}{}%
+\contentsline {subsection}{\numberline {2.1}State-Space Representation}{8}{}%
+\contentsline {subsection}{\numberline {2.2}Controllability}{9}{}%
+\contentsline {subsection}{\numberline {2.3}Observability}{9}{}%
+\contentsline {subsection}{\numberline {2.4}The Control Workflow: A Full Picture}{9}{}%
+\contentsline {section}{\numberline {3}Project Objectives}{10}{}%
+\contentsline {section}{\numberline {4}Proposed Methodology}{10}{}%
+\contentsline {subsection}{\numberline {4.1}Stage 1: System Design and Fabrication}{10}{}%
+\contentsline {subsection}{\numberline {4.2}Stage 2: Modeling and Control System Implementation}{11}{}%
+\contentsline {subsection}{\numberline {4.3}Stage 3: Vision and Sensor Fusion Development}{11}{}%
+\contentsline {subsection}{\numberline {4.4}Stage 4: Experimental Validation and Analysis}{11}{}%

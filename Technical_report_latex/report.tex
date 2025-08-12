@@ -1,0 +1,409 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{lipsum} % For placeholder text
+
+\geometry{a4paper, margin=1in}
+\pagestyle{empty} % No page numbers
+
+\begin{document}
+
+% ===================================================================
+% PAGE 1: CLASSIFICATION NOTICE
+% ===================================================================
+\begin{center}
+    \vspace*{1cm}
+    {\Huge \textbf{\textcolor{red}{TOP SECRET // FOR INTERNAL USE ONLY}}}
+    
+    \vspace{2cm}
+    \fbox{\parbox{0.8\textwidth}{
+        \centering
+        \Large \textbf{CLASSIFICATION NOTICE} \\
+        \vspace{0.5cm}
+        \normalsize
+        This document contains proprietary and confidential information pertaining to advanced research and development. The information is the exclusive property of the project lead and associated institution.
+        
+        \vspace{0.5cm}
+        Unauthorized access, reproduction, distribution, or disclosure of this material, in whole or in part, is strictly prohibited. Violators will be subject to the fullest extent of applicable institutional and civil policies.
+        
+        \vspace{0.5cm}
+        \textbf{LEVEL V CLEARANCE REQUIRED}
+    }}
+    
+ 
+
+    \vspace{3cm}
+    \begin{tabular}{ll}
+        \textbf{PROJECT LEAD:} & S. HARI PREETHAM \\
+        \textbf{SUPERVISING AUTHORITY:} & DR. A. CHENNAKESAVA REDDY \\
+        \textbf{INSTITUTION:} & JNTUH UCESTH \\
+        \textbf{DOCUMENT ID:} & \texttt{PRJ-ARES-V-2025-DOC-001} \\
+        \textbf{DATE OF ISSUE:} & \today
+    \end{tabular}
+    
+    \vspace{2cm}
+    {\large \textit{Handle with extreme care. Information contained herein is critical to ongoing research objectives.}}
+
+    \vfill
+    {\textbf{\textcolor{red}{CONFIDENTIAL}}}
+\end{center}
+
+\newpage
+
+% ===================================================================
+% PAGE 2: TITLE PAGE
+% ===================================================================
+\begin{titlepage}
+    \centering
+    {\Large A Project Report on} \\
+    \vspace{1.5cm}
+    {\Huge \textbf{
+Real-Time Precision Actuation in Laser Steering Systems \\[0.1cm]
+via Visual-Inertial Fusion and Active\\[0.3cm] Vibration Compensation
+}}
+
+    \vspace{2cm}
+    
+    {\large Submitted by:} \\
+    \vspace{0.5cm}
+    {\Large \textbf{S HARI PREETHAM}} \\
+    {\large 21011P0329} \\
+    \vspace{1.5cm}
+    
+    {\large Under the Esteemed Guidance of} \\
+    \vspace{0.5cm}
+    {\Large \textbf{DR. A. CHENNAKESAVA REDDY}} \\
+    {\large Senior Professor, Department of Mechanical Engineering} \\
+    \vfill
+    
+    % \includegraphics[width=0.3\textwidth]{logo.png} \\
+    % \vspace{1cm}
+    
+    {\Large \textbf{JAWAHARLAL NEHRU TECHNOLOGICAL \\[0.1cm] UNIVERSITY HYDERABAD}} \\
+    \vspace{0.2cm}
+    {\large UNIVERSITY COLLEGE OF ENGINEERING SCIENCE AND TECHNOLOGY, HYDERABAD} \\ [0.1cm]
+    \vspace{1.5cm}
+    
+    {\large August 2025}
+\end{titlepage}
+
+% ===================================================================
+% TABLE OF CONTENTS
+% ===================================================================
+\pagestyle{plain}
+\pagenumbering{roman} % Use roman numerals (i, ii, iii) for front matter
+\tableofcontents
+\newpage
+\pagenumbering{arabic} % Switch back to arabic numerals (1, 2, 3) for the main document
+
+% ===================================================================
+% PAGE 3: ABSTRACT, PROBLEM STATEMENT, NOVELTY
+% ===================================================================
+\pagestyle{plain} % Enables page numbering (e.g., 1, 2, 3...)
+\setcounter{page}{1} % Resets the page counter to start at 1
+
+\section*{Abstract}
+
+Conventional laser-based weeding systems, while a promising chemical-free alternative in precision agriculture, rely on high-mass platforms with passive mechanical isolation. This brute-force approach to stabilization necessitates the use of high-power pulsed lasers, which significantly increases the system's cost, complexity, safety concerns, and energy requirements.
+
+This project proposes a low-cost, lightweight, control-centric paradigm: an active vibration compensation framework engineered from salvaged mechatronic components. The system integrates both inertial (IMU) and vision-based feedback to dynamically track and eliminate line-of-sight (LOS) jitter in real-time. This active stabilization enables the effective use of safe, low-power, continuous-wave (CW) lasers. Custom galvanometers, constructed from repurposed Hard-Disk Drive (HDD) and optical drive actuators, are governed by high-bandwidth control systems (PID, LQR, MPC). These controllers are based on state-space models derived from experimental system identification and Kalman filtering.
+
+To complement the core stabilization, a computer vision pipeline is implemented for real-time plant versus weed classification and tracking, utilizing pre-trained deep learning models such as YOLOv8 for detection and DeepSORT/ByteTrack for object tracking. This enables robust visual servoing, locking the laser onto dynamic weed targets even under significant platform motion. While the primary application domain is agricultural automation, the core innovation—high-fidelity stabilization via hybrid sensor fusion and AI-guided control—is fundamental to defense, aerospace, and medical robotics.
+
+\vspace{1cm}
+
+\section*{Problem Statement and Motivation}
+
+The deployment of precision laser systems on mobile platforms is severely hampered by several key challenges that current solutions fail to adequately address:
+\begin{itemize}
+    \item \textbf{Prohibitive Cost and Bulk:} Existing laser steering platforms depend on high-end, laboratory-grade galvanometers or heavy, complex gimbal mechanisms. These systems are expensive, bulky, and unsuitable for lightweight, cost-sensitive mobile applications like agricultural robots.
+    \item \textbf{Unaddressed Mechanical Disturbance:} The majority of existing systems are designed for stationary or mechanically isolated platforms. The critical problem of maintaining real-time pointing accuracy under dynamic disturbances (e.g., vehicle vibration, terrain-induced movement) remains largely under-explored.
+    \item \textbf{Lack of Sensor Fusion for Beam Control:} While sensor fusion is ubiquitous in navigation and robotics, its specific application to real-time beam steering and actuation control is a nascent field. There is a significant gap in integrating visual and inertial data to directly compensate for beam deviation.
+    \item \textbf{Absence of Real-World Performance Metrics:} The literature lacks systematic experimental evaluation of actuation accuracy under vibration. Key performance metrics such as jitter suppression, settling time, and overshoot on disturbed platforms are not well-studied, making it difficult to compare system efficacy.
+\end{itemize}
+
+\vspace{1cm}
+
+\section*{Novelty and Contribution}
+
+This project makes several novel contributions to the field of mechatronics and control systems:
+\begin{itemize}
+    \item \textbf{Resource-Constrained Mechatronics:} It demonstrates that low-cost, salvaged hardware from e-waste can achieve high-precision control performance when coupled with modern software techniques, offering a viable alternative to expensive off-the-shelf components.
+    \item \textbf{Hybrid AI + Control Stack:} It pioneers the integration of deep-learning-based computer vision with classical and modern control theory (PID, LQR, MPC) for active visual servoing in a precision actuation context.
+    \item \textbf{Visual-Inertial Fusion for Disturbance Rejection:} It applies cutting-edge mapping and localization concepts (Visual-Inertial SLAM) not for navigation, but as a core component of a disturbance rejection framework for a dynamic targeting system.
+    \item \textbf{Broad Impact Framework:} The core disturbance rejection and active stabilization framework is domain-agnostic and directly applicable to other high-stakes fields, including aerospace (satellite laser communication), defense (target tracking, counter-UAV systems), and medical optics.
+\end{itemize}
+
+\newpage
+
+
+% ===================================================================
+% CHAPTER 2: THEORETICAL FRAMEWORK
+% ===================================================================
+\section{Theoretical Framework}
+
+The ability to precisely and rapidly steer a laser beam requires a robust mathematical model of the system's mechanics and optics.
+ This section develops this framework, beginning with the fundamental laws of reflection and culminating in the kinematic models that translate desired target coordinates into physical actuator commands.
+
+\subsection{Principle of Reflection and the 2\(\theta\) Rule}
+
+The kinematic model is built upon the law of reflection. A critical and direct consequence for dynamic systems is the 2\(\theta\) Rule: a mechanical rotation of a mirror by an angle \(\theta\) deflects the reflected optical path by \(2\theta\).
+
+This angular amplification is a direct result of the geometry.
+ When the mirror plane rotates by \(\theta\), the mirror's normal vector must also rotate by the same angle
+  \(\theta\). This rotation changes the angle of incidence by \(\theta\). To satisfy the law of reflection
+  with respect to this new normal, the angle of reflection must also change by \(\theta\).
+   The total deflection is the sum of these two changes, resulting in a robust and predictable deflection 
+   of precisely \(2\theta\). This effect provides a crucial mechanical advantage, allowing small, 
+   high-speed rotations to produce a large angular sweep of the laser beam.
+
+
+\subsubsection{A First Approximation: Planar Projection}
+As a first-order model for a single-axis scanner, we can directly apply the 2\(\theta\) rule using basic trigonometry. Consider a single mirror pivoting at the origin and deflecting a laser beam onto a flat screen positioned at a perpendicular distance \(d\).
+
+The optical deflection angle is \(2\theta\). In the right-angled triangle formed by the pivot point, the center of the screen, and the laser spot, the displacement of the spot (\(x\)) is the side opposite to this angle. Therefore, the relationship is given by:
+\begin{equation}
+    \tan(2\theta) = \frac{\text{opposite}}{\text{adjacent}} = \frac{x}{d}
+\end{equation}
+Solving for the displacement \(x\) gives our first approximation:
+\begin{equation}
+    x = d \tan(2\theta)
+\end{equation}
+While simple and useful for basic estimations, this model is insufficient for a high-fidelity 2D system because it fails to account for the sequential reflections and the physical distance between the two mirrors. For a rigorous model, we must therefore use the vector form of reflection.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{./images/optics_of_galvo_scanner.png} % replace with your file name
+    \caption{Geometric illustration of the principle of reflection and the $2\theta$ rule.}
+    \label{fig:reflection_2theta}
+\end{figure}
+
+Therefore, by using a dual-axis galvanometer setup, the laser beam can be directed to any point within a defined area on the X–Y plane. The size of this area is determined by the mirror dimensions, the angular range of rotation, and the distance between the mirror system and the projection surface.     
+\subsubsection{Vector Form of Reflection}
+Let \(\vec{V}\) be the unit vector representing the direction of the incoming laser beam, and let \(\vec{N}\) be the unit normal vector of the mirror surface. The resulting reflected vector, \(\vec{R}\), is given by:
+\begin{equation}
+    \vec{R} = \vec{V} - 2(\vec{V} \cdot \vec{N})\vec{N}
+    \label{eq:vector_reflection}
+\end{equation}
+This equation forms the basis of our kinematic model. 
+
+\subsection{Forward Kinematics: From Mirror Angles to Screen Coordinates}
+
+Forward kinematics calculates the final laser spot position on the screen given a set of mirror angles. To model this, we first define a standard 3D coordinate system:
+\begin{itemize}
+    \item The origin is at the center of the first mirror (X-mirror).
+    \item The \textbf{Z-axis} represents the path of the incoming laser beam.
+    \item The \textbf{X-mirror} deflects the beam along the X-axis by rotating around the \textbf{Y-axis} by an angle \(\theta_y\).
+    \item The \textbf{Y-mirror} deflects the beam along the Y-axis by rotating around the \textbf{X-axis} by an angle \(\theta_x\).
+\end{itemize}
+
+The initial state is an incoming beam along the Z-axis, \(\vec{V}_{in} = [0, 0, 1]^T\). The undeflected normals of the mirrors are \(\vec{N}_{x0}\) and \(\vec{N}_{y0}\), typically oriented at 45 degrees to the incoming beam.
+
+A rotation of a mirror by its angle changes its normal vector. The new normal is found by applying a 3D rotation matrix.
+\begin{itemize}
+    \item \textbf{Rotation around X-axis} (for Y-mirror, angle \(\theta_x\)):
+    \begin{equation}
+        \mathbf{R}_x(\theta_x) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\theta_x & -\sin\theta_x \\ 0 & \sin\theta_x & \cos\theta_x \end{bmatrix}
+    \end{equation}
+    \item \textbf{Rotation around Y-axis} (for X-mirror, angle \(\theta_y\)):
+    \begin{equation}
+        \mathbf{R}_y(\theta_y) = \begin{bmatrix} \cos\theta_y & 0 & \sin\theta_y \\ 0 & 1 & 0 \\ -\sin\theta_y & 0 & \cos\theta_y \end{bmatrix}
+    \end{equation}
+\end{itemize}
+
+\subsubsection{Full Path Algorithm}
+The final direction of the laser beam is calculated through sequential reflections:
+\begin{enumerate}
+    \item \textbf{First Reflection (X-mirror):} The new normal of the X-mirror is \(\vec{N}_{x} = \mathbf{R}_y(\theta_y)\vec{N}_{x0}\). The beam is reflected: \(\vec{R}_1 = \vec{V}_{in} - 2(\vec{V}_{in} \cdot \vec{N}_{x})\vec{N}_{x}\).
+    \item \textbf{Second Reflection (Y-mirror):} The new normal of the Y-mirror is \(\vec{N}_{y} = \mathbf{R}_x(\theta_x)\vec{N}_{y0}\). The beam from the first mirror, \(\vec{R}_1\), is now the incoming vector for the second: \(\vec{R}_{final} = \vec{R}_1 - 2(\vec{R}_1 \cdot \vec{N}_{y})\vec{N}_{y}\).
+\end{enumerate}
+
+\subsubsection{Ray-Plane Intersection}
+With the final direction vector \(\vec{R}_{final} = [R_x, R_y, R_z]^T\), we can find where it hits the screen. Assuming the second mirror is at the origin for simplicity, the parametric equation for the ray is \(\vec{P}(t) = t \cdot \vec{R}_{final}\).
+The screen is a plane defined by \(z=d\). We solve for \(t\):
+\begin{equation}
+    t \cdot R_z = d \implies t = \frac{d}{R_z}
+\end{equation}
+Substituting \(t\) back gives the final coordinates \((X_f, Y_f)\):
+\begin{equation}
+    X_f = t \cdot R_x = d \frac{R_x}{R_z} \quad \text{and} \quad Y_f = t \cdot R_y = d \frac{R_y}{R_z}
+\end{equation}
+This completes the forward kinematic model. However, for control, we need the inverse.
+
+\subsection{Inverse Kinematics: The Challenge of Target-to-Angle Mapping}
+
+For any practical application, we must solve the inverse problem: given a desired target on the screen \((X_{target}, Y_{target})\), what are the required mirror angles \((\theta_x, \theta_y)\)? This is the inverse kinematics (IK) problem.
+
+Forward kinematics is insufficient for real-time control, especially on a mobile platform, because:
+\begin{itemize}
+    \item The pivot point \([0,0,0]\) is no longer static; it is moving and vibrating.
+    \item We need to solve for angles in real-time to track a target.
+    \item The forward mapping is complex and non-linear, making direct analytical inversion impractical for a real-world system with mechanical imperfections and misalignments.
+\end{itemize}
+
+\subsubsection{Analytical vs. Numerical IK}
+An \textbf{analytical} solution would provide a direct, closed-form equation, e.g., \(\theta_x = f(X,Y)\). While derivable for highly simplified cases (e.g., assuming perfectly orthogonal, co-located mirrors), such solutions are brittle and fail to account for real-world mechanical realities, rendering them useless for a high-precision system.
+
+A \textbf{numerical} solution iteratively finds the angles. This approach is more robust and can adapt to complex, non-ideal systems, which is essential for our application. We use the Jacobian-based iterative method.
+
+\subsection{Numerical Solution: The Jacobian Iterative Method}
+
+The Jacobian matrix, \(\mathbf{J}\), serves as a "sensitivity map." It relates infinitesimal changes in the input (mirror angles) to the resulting infinitesimal changes in the output (screen position). It is the matrix of all first-order partial derivatives of the forward kinematics function:
+\begin{equation}
+    \mathbf{J}(\boldsymbol{\theta}) = \begin{bmatrix} \frac{\partial X_f}{\partial \theta_x} & \frac{\partial X_f}{\partial \theta_y} \\ \frac{\partial Y_f}{\partial \theta_x} & \frac{\partial Y_f}{\partial \theta_y} \end{bmatrix}
+\end{equation}
+where \(\boldsymbol{\theta} = [\theta_x, \theta_y]^T\).
+
+We use this matrix in an iterative algorithm to converge on the correct angles.
+
+\subsubsection{Iterative Inverse Kinematic Algorithm}
+\begin{enumerate}
+    \item \textbf{Initialization (Step 0):} Identify the target position \(\vec{P}_{target} = [X_{target}, Y_{target}]^T\). Start with the current measured angles of the motors, \(\boldsymbol{\theta}_{current}\).
+    \item \textbf{Calculate Current Position (Step 1):} Use the forward kinematics model to calculate the current laser position on the screen, \(\vec{P}_{current}\), based on \(\boldsymbol{\theta}_{current}\).
+    \item \textbf{Find the Error (Step 2):} Calculate the error vector between the target and current position: \(\vec{e} = \vec{P}_{target} - \vec{P}_{current}\).
+    \item \textbf{Calculate Jacobian (Step 3):} Compute the Jacobian matrix \(\mathbf{J}\) at the current angle configuration \(\boldsymbol{\theta}_{current}\).
+    \item \textbf{Determine Angle Correction (Step 4):} The desired change in angles, \(\Delta\boldsymbol{\theta}\), can be found by "inverting" the Jacobian relationship \(\vec{e} \approx \mathbf{J} \Delta\boldsymbol{\theta}\). Instead of using a direct and potentially unstable inverse, we use the Jacobian transpose, which is computationally simpler and more stable:
+    \begin{equation}
+        \Delta\boldsymbol{\theta} = \alpha \mathbf{J}^T \vec{e}
+    \end{equation}
+    Here, \(\alpha\) is a small learning rate (a step size) that ensures a stable convergence.
+    \item \textbf{Update Guess (Step 5):} Update the motor angles: \(\boldsymbol{\theta}_{new} = \boldsymbol{\theta}_{current} + \Delta\boldsymbol{\theta}\).
+    \item \textbf{Repeat:} Set \(\boldsymbol{\theta}_{current} = \boldsymbol{\theta}_{new}\) and repeat from Step 1 until the magnitude of the error vector \(||\vec{e}||\) is below a desired tolerance.
+\end{enumerate}
+This iterative process allows the system to find the correct angles even for a complex, non-ideal mechanical setup and is the core of the high-level steering control.
+
+\newpage
+
+% ===================================================================
+% CHAPTER 3: SYSTEM DYNAMICS AND CONTROL
+% ===================================================================
+\section{System Dynamics and Control}
+
+While the kinematic model describes the geometry of the laser steering system, the dynamic model describes its behavior over time in response to inputs. For high-performance control, especially for disturbance rejection, it is advantageous to move beyond simple transfer functions and describe the system's internal dynamics using a state-space representation.
+
+\subsection{State-Space Representation}
+
+State-space modeling provides a complete description of a system's internal state in a first-order matrix form. This representation is powerful for multi-input, multi-output (MIMO) systems and is the foundation for modern control techniques like LQR and state estimators like the Kalman filter.
+
+The standard form is given by two equations:
+\begin{align}
+    \dot{\mathbf{x}}(t) &= \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t) \label{eq:state_equation} \\
+    \mathbf{y}(t) &= \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t) \label{eq:output_equation}
+\end{align}
+
+Where:
+\begin{itemize}
+    \item \(\mathbf{x}(t)\) is the \textbf{state vector}. This is the minimal set of variables needed to fully describe the system's internal state at time \(t\). For a single mechanical axis (one motor), this vector typically includes angular position (\(\theta\)) and angular velocity (\(\dot{\theta}\)).
+    \begin{equation*}
+        \mathbf{x} = \begin{bmatrix} \theta \\ \dot{\theta} \end{bmatrix}
+    \end{equation*}
+
+    \item \(\mathbf{u}(t)\) is the \textbf{input vector}. This represents the external signal used to control the system. In our case, this is the voltage applied to the motor driver.
+
+    \item \(\mathbf{y}(t)\) is the \textbf{output vector}. This represents the signals that can be physically measured by sensors.
+
+    \item \(\mathbf{A}\) is the \textbf{state matrix}. It describes the system's internal dynamics (how the state evolves on its own, without any input). For a 2x2 matrix, it relates position and velocity.
+
+    \item \(\mathbf{B}\) is the \textbf{input matrix}. It describes how the input signal influences the state (e.g., how input voltage creates an angular acceleration).
+
+    \item \(\mathbf{C}\) is the \textbf{output matrix}. It describes which parts of the state vector are directly measured to form the output vector \(\mathbf{y}\).
+
+    \item \(\mathbf{D}\) is the \textbf{feedthrough matrix}. It represents any direct connection from the input to the output. For most mechanical systems, this is a zero matrix.
+\end{itemize}
+
+The matrices \(\mathbf{A}\), \(\mathbf{B}\), and \(\mathbf{C}\) contain the physics of the system. While they can be derived from first principles, a more practical approach for a complex assembly is to determine them experimentally through a process called \textbf{system identification}.
+
+\subsection{Controllability}
+Before designing a controller, we must answer a fundamental question: is the system controllable? Controllability asks: "Is it physically possible to drive the system from any initial state to any desired final state in a finite amount of time using the input signal \(\mathbf{u}\)?"
+
+Mathematically, a linear time-invariant (LTI) system is controllable if and only if the \textbf{controllability matrix}, \(\mathcal{C}\), has full rank. For our second-order system, the matrix is:
+\begin{equation}
+    \mathcal{C} = \begin{bmatrix} \mathbf{B} & \mathbf{AB} \end{bmatrix}
+\end{equation}
+If \(\det(\mathcal{C}) \neq 0\), the system is controllable, and we can proceed with designing a controller that can fully manipulate its state.
+
+\subsection{Observability}
+The dual concept to controllability is observability. It asks: "By observing the output \(\mathbf{y}\) over a period of time, can we uniquely determine the initial state \(\mathbf{x}(0)\)?" In essence, can we deduce the full internal state of the system by looking at its sensor outputs?
+
+Observability is a prerequisite for state estimation. A system is observable if and only if the \textbf{observability matrix}, \(\mathcal{O}\), has full rank. The observability matrix is constructed as:
+\begin{equation}
+    \mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{CA} \end{bmatrix}
+\end{equation}
+If \(\det(\mathcal{O}) \neq 0\), the system is observable. This means we can design a state estimator, like a Kalman filter, to reconstruct the full state vector (e.g., estimate velocity from position measurements).
+
+\subsection{The Control Workflow: A Full Picture}
+The state-space model, along with the concepts of controllability and observability, forms a powerful and cohesive workflow for system control:
+\begin{enumerate}
+    \item Perform \textbf{System Identification} on the physical hardware to obtain the matrices \(\mathbf{A}\), \(\mathbf{B}\), and \(\mathbf{C}\) that mathematically describe the galvanometer dynamics.
+    \item Check the \textbf{controllability} and \textbf{observability} matrices to prove that the system is well-designed and that a state-feedback controller and estimator are feasible.
+    \item Implement a \textbf{Kalman Filter} using the system model (\(\mathbf{A, B, C}\)) to produce an optimal estimate of the full state \(\mathbf{x}\) (position and velocity) from noisy sensor data.
+    \item Feed this clean state estimate into a state-feedback controller (like an \textbf{LQR controller}) that uses the state matrices to calculate the optimal motor voltage required to drive the system to its target state.
+    \item This entire low-level control loop receives its high-level goals (the desired mirror angles \(\theta_x, \theta_y\)) from the numerical \textbf{Inverse Kinematics solver}.
+\end{enumerate}
+
+\newpage
+
+% ===================================================================
+% CHAPTER 4: OBJECTIVES AND METHODOLOGY
+% ===================================================================
+\section{Project Objectives}
+
+The primary goal of this research is to design, build, and validate a low-cost, high-performance laser steering system capable of precise targeting and active vibration compensation on mobile platforms. The specific objectives are as follows:
+
+\begin{enumerate}
+    \item \textbf{Design and Fabricate a Low-Cost Actuation System:} Develop and construct a functional, dual-axis laser steering system using salvaged mechatronic components (e.g., voice coil motors from HDDs) as a resource-constrained alternative to expensive commercial galvanometers.
+
+    \item \textbf{Develop a Hybrid Sensor Fusion Framework:} Integrate data from an Inertial Measurement Unit (IMU) with vision-based data (optical flow and object tracking) to create a robust, real-time estimate of both platform motion and target location, enabling line-of-sight stabilization.
+
+    \item \textbf{Implement and Compare Advanced Control Strategies:} Derive an accurate state-space model of the system's dynamics via experimental system identification. Based on this model, implement and comparatively analyze the performance of multiple control architectures (PID, LQR, MPC) for stabilization and disturbance rejection.
+
+    \item \textbf{Develop an AI-Powered Visual Servoing Pipeline:} Implement a complete computer vision pipeline for real-time weed detection (YOLOv8), classification, and object tracking (DeepSORT/ByteTrack) to provide dynamic target coordinates to the control system.
+
+    \item \textbf{Experimentally Validate System Performance:} Quantify the system's targeting and stabilization performance under simulated real-world conditions. This involves deploying the system on a motion platform to measure key metrics such as jitter suppression, tracking error, and response time under various dynamic loads.
+\end{enumerate}
+
+\section{Proposed Methodology}
+
+The project will be executed in four distinct stages, progressing from hardware fabrication to system-level validation.
+
+\subsection{Stage 1: System Design and Fabrication}
+This stage focuses on creating the core physical hardware.
+\begin{itemize}
+    \item \textbf{Mechanical Design:} A dual-axis galvanometer assembly will be designed using CAD software. The design will focus on optimizing actuation geometry and structural layout to minimize backlash, inertia, and mechanical resonance.
+    \item \textbf{Actuator and Optics Sourcing:} Voice coil motors (VCMs) and front-surface mirrors will be salvaged from defunct Hard-Disk Drives (HDDs) or optical disc drives.
+    \item \textbf{Electronics Integration:} The mechanical assembly will be integrated with a high-speed microcontroller (e.g., Teensy 4.1), custom motor drivers, an Inertial Measurement Unit (IMU), and an optical flow sensor to form the mechatronic base.
+\end{itemize}
+
+\subsection{Stage 2: Modeling and Control System Implementation}
+This stage focuses on developing the low-level control intelligence.
+\begin{itemize}
+    \item \textbf{System Identification:} The dynamic response of the fabricated plant will be characterized. Experimental tests such as step response analysis and frequency sweeps (generating Bode plots) will be performed to gather empirical data.
+    \item \textbf{State-Space Modeling:} The empirical data will be used to derive a mathematical state-space model (\(\mathbf{A, B, C}\) matrices) that accurately represents the system's input-output dynamics.
+    \item \textbf{Controller Design:} Multiple controllers will be designed and implemented for line-of-sight stabilization based on the identified model, including a classical PID controller and modern state-feedback controllers such as a Linear-Quadratic Regulator (LQR).
+\end{itemize}
+
+\subsection{Stage 3: Vision and Sensor Fusion Development}
+This stage builds the high-level perception and targeting system.
+\begin{itemize}
+    \item \textbf{AI-Based Object Detection:} A YOLOv8 model will be trained or fine-tuned on public datasets for robust weed detection.
+    \item \textbf{Real-Time Object Tracking:} A tracking algorithm (e.g., DeepSORT or ByteTrack) will be implemented to maintain a persistent identity for each detected target across video frames.
+    \item \textbf{Visual-Inertial Fusion:} Algorithms will be developed to fuse the high-frequency motion data from the IMU with the vision-based data (target location, optical flow) to produce a highly accurate, real-time estimate of beam deviation and absolute target location, even during platform motion.
+\end{itemize}
+
+\subsection{Stage 4: Experimental Validation and Analysis}
+The final stage focuses on testing the integrated system.
+\begin{itemize}
+    \item \textbf{Testbed Setup:} The complete system will be mounted on a programmable motion platform capable of simulating real-world vibrations and field disturbances.
+    \item \textbf{Performance Measurement:} Systematic experiments will be conducted to quantify key performance metrics, including pointing accuracy, tracking error, jitter suppression, and settling time.
+    \item \textbf{Comparative Analysis:} The performance and robustness of the different control strategies (PID vs. LQR) will be evaluated and compared under various simulated visual and mechanical workloads.
+\end{itemize}
+
+\newpage
+
+\end{document}
