@@ -39,10 +39,9 @@
 
     \vspace{3cm}
     \begin{tabular}{ll}
-        \textbf{PROJECT LEAD:} & S. HARI PREETHAM \\
+        \textbf{STUDENT NAME:} & S. HARI PREETHAM \\
         \textbf{SUPERVISING AUTHORITY:} & DR. A. CHENNAKESAVA REDDY \\
         \textbf{INSTITUTION:} & JNTUH UCESTH \\
-        \textbf{DOCUMENT ID:} & \texttt{PRJ-ARES-V-2025-DOC-001} \\
         \textbf{DATE OF ISSUE:} & \today
     \end{tabular}
     
@@ -195,56 +194,84 @@ This equation forms the basis of our kinematic model.
 
 \subsection{Forward Kinematics: From Mirror Angles to Screen Coordinates}
 
-Forward kinematics calculates the final laser spot position on the screen given a set of mirror angles. To model this, we first define a standard 3D coordinate system:
+Forward kinematics provides a mathematical model to calculate the final laser spot position on the screen, \((X_f, Y_f)\), from a given set of mechanical mirror angles, \((\theta_x, \theta_y)\). To construct this model, we first define a standard 3D Cartesian coordinate system:
+
 \begin{itemize}
-    \item The origin is at the center of the first mirror (X-mirror).
-    \item The \textbf{Z-axis} represents the path of the incoming laser beam.
-    \item The \textbf{X-mirror} deflects the beam along the X-axis by rotating around the \textbf{Y-axis} by an angle \(\theta_y\).
-    \item The \textbf{Y-mirror} deflects the beam along the Y-axis by rotating around the \textbf{X-axis} by an angle \(\theta_x\).
+\item The origin, \([0,0,0]\), is defined as the pivot center of the first mirror (the X-mirror).
+\item The \textbf{Z-axis} represents the path of the incoming laser beam.
+\item The \textbf{X-mirror} is responsible for horizontal deflection. It pivots around the \textbf{Y-axis} by a mechanical angle \(\theta_y\).
+\item The \textbf{Y-mirror} is responsible for vertical deflection. It is positioned at a distance \(e\) along the X-axis from the first mirror. It pivots around an axis parallel to the \textbf{X-axis} by a mechanical angle \(\theta_x\).
 \end{itemize}
 
-The initial state is an incoming beam along the Z-axis, \(\vec{V}_{in} = [0, 0, 1]^T\). The undeflected normals of the mirrors are \(\vec{N}_{x0}\) and \(\vec{N}_{y0}\), typically oriented at 45 degrees to the incoming beam.
+The initial state is an incoming laser beam traveling along the Z-axis, represented by the vector \(\vec{V}_{in} = [0, 0, 1]^T\). The undeflected normals of the mirrors, \(\vec{N}_{x0}\) and \(\vec{N}_{y0}\), are typically oriented at 45 degrees to the Z-axis to correctly fold the optical path.
 
-A rotation of a mirror by its angle changes its normal vector. The new normal is found by applying a 3D rotation matrix.
+A rotation of a mirror changes its normal vector. The new normal is found by applying a 3D rotation matrix to the initial normal vector.
 \begin{itemize}
-    \item \textbf{Rotation around X-axis} (for Y-mirror, angle \(\theta_x\)):
-    \begin{equation}
-        \mathbf{R}_x(\theta_x) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\theta_x & -\sin\theta_x \\ 0 & \sin\theta_x & \cos\theta_x \end{bmatrix}
-    \end{equation}
-    \item \textbf{Rotation around Y-axis} (for X-mirror, angle \(\theta_y\)):
-    \begin{equation}
-        \mathbf{R}_y(\theta_y) = \begin{bmatrix} \cos\theta_y & 0 & \sin\theta_y \\ 0 & 1 & 0 \\ -\sin\theta_y & 0 & \cos\theta_y \end{bmatrix}
-    \end{equation}
+\item \textbf{Rotation around X-axis} (for Y-mirror, angle \(\theta_x\)):
+\begin{equation}
+\mathbf{R}_x(\theta_x) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\theta_x & -\sin\theta_x \\ 0 & \sin\theta_x & \cos\theta_x \end{bmatrix}
+\end{equation}
+\item \textbf{Rotation around Y-axis} (for X-mirror, angle \(\theta_y\)):
+\begin{equation}
+\mathbf{R}_y(\theta_y) = \begin{bmatrix} \cos\theta_y & 0 & \sin\theta_y \\ 0 & 1 & 0 \\ -\sin\theta_y & 0 & \cos\theta_y \end{bmatrix}
+\end{equation}
 \end{itemize}
 
 \subsubsection{Full Path Algorithm}
-The final direction of the laser beam is calculated through sequential reflections:
+The final direction of the laser beam is calculated through a sequence of two reflections:
 \begin{enumerate}
-    \item \textbf{First Reflection (X-mirror):} The new normal of the X-mirror is \(\vec{N}_{x} = \mathbf{R}_y(\theta_y)\vec{N}_{x0}\). The beam is reflected: \(\vec{R}_1 = \vec{V}_{in} - 2(\vec{V}_{in} \cdot \vec{N}_{x})\vec{N}_{x}\).
-    \item \textbf{Second Reflection (Y-mirror):} The new normal of the Y-mirror is \(\vec{N}_{y} = \mathbf{R}_x(\theta_x)\vec{N}_{y0}\). The beam from the first mirror, \(\vec{R}_1\), is now the incoming vector for the second: \(\vec{R}_{final} = \vec{R}_1 - 2(\vec{R}_1 \cdot \vec{N}_{y})\vec{N}_{y}\).
+\item \textbf{First Reflection (X-mirror):} The X-mirror's normal vector is updated based on its rotation: \(\vec{N}_{x} = \mathbf{R}_y(\theta_y)\vec{N}_{x0}\). The incoming beam reflects off this surface, resulting in a new direction vector: \(\vec{R}_1 = \vec{V}_{in} - 2(\vec{V}_{in} \cdot \vec{N}_{x})\vec{N}_{x}\). The components of \(\vec{R}_1\) are now trigonometric functions of the angle \(\theta_y\).
+\item \textbf{Second Reflection (Y-mirror):} The Y-mirror's normal vector is similarly updated: \(\vec{N}_{y} = \mathbf{R}_x(\theta_x)\vec{N}_{y0}\). The beam from the first mirror, \(\vec{R}_1\), is the incoming vector for this reflection. The final direction vector is therefore: \(\vec{R}_{final} = \vec{R}_1 - 2(\vec{R}_1 \cdot \vec{N}_{y})\vec{N}_{y}\).
+\end{enumerate}
+It is critical to note that during this second reflection, the dot product term \((\vec{R}_1 \cdot \vec{N}_{y})\) mathematically entangles the two rotation angles. Because \(\vec{R}_1\) is a function of \(\theta_y\) and \(\vec{N}_{y}\) is a function of \(\theta_x\), the resulting vector \(\vec{R}_{final}\) contains complex, non-linear cross-coupled terms, making it impossible to separate the influence of each angle cleanly.
+
+\subsubsection{Ray-Plane Intersection and Pincushion Distortion}
+With the final direction vector \(\vec{R}_{final} = [R_x, R_y, R_z]^T\), we can determine its intersection with a screen plane. The final ray originates from the pivot point of the Y-mirror, which is located at \(\vec{P}_y = [e, 0, 0]^T\). The parametric equation for this ray is \(\vec{P}(t) = \vec{P}_y + t \cdot \vec{R}_{final}\).
+
+The screen is a plane defined by the equation \(z=d\), where \(d\) is the perpendicular distance from the Y-mirror's pivot axis to the screen. To find the intersection point, we solve the z-component of the parametric equation for the parameter \(t\):
+\begin{equation}
+0 + t \cdot R_z = d \implies t = \frac{d}{R_z}
+\end{equation}
+Substituting \(t\) back into the x and y components gives the final coordinates \((X_f, Y_f)\):
+\begin{equation}
+X_f = e + t \cdot R_x = e + d \frac{R_x}{R_z}
+\end{equation}
+\begin{equation}
+Y_f = 0 + t \cdot R_y = d \frac{R_y}{R_z}
+\end{equation}
+This model fully describes the geometry of the system. It also reveals the source of pincushion distortion. The final X-coordinate depends not just on its own angle but also on the path length to the screen. This path length is modulated by the tilt of the Y-mirror, causing the scan field to become wider at the top and bottom edges, which creates the characteristic pincushion shape.
+
+\subsubsection{Matrix Representation of the Kinematic Chain}
+
+To more clearly illustrate the coupling between the mirror rotations, we can represent the reflection operation itself as a matrix transformation. For a given mirror normal \(\vec{N}\), the reflection matrix \(\mathbf{M}_{ref}(\vec{N})\) that transforms an incoming vector \(\vec{V}\) to a reflected vector \(\vec{R}\) is given by:
+
+\begin{equation}
+\mathbf{M}_{ref}(\vec{N}) = \mathbf{I} - 2(\vec{N} \otimes \vec{N}) = \begin{bmatrix} 1 - 2N_x^2 & -2N_xN_y & -2N_xN_z \\ -2N_xN_y & 1 - 2N_y^2 & -2N_yN_z \\ -2N_xN_z & -2N_yN_z & 1 - 2N_z^2 \end{bmatrix}
+\end{equation}
+where \(\mathbf{I}\) is the identity matrix and \(\otimes\) denotes the outer product.
+
+Using this representation, the entire forward kinematic chain can be expressed as a single composite transformation matrix, \(\mathbf{M}_{total}\), acting on the initial beam vector:
+
+\begin{enumerate}
+\item The reflection matrix for the X-mirror, \(\mathbf{M}_{ref,X}\), is a function of its normal, \(\vec{N}_x\), which in turn depends on the angle \(\theta_y\).
+\item The reflection matrix for the Y-mirror, \(\mathbf{M}_{ref,Y}\), is a function of its normal, \(\vec{N}_y\), which depends on the angle \(\theta_x\).
+\item The final direction vector is therefore given by the product of these matrices:
+\begin{equation}
+\vec{R}_{final} = \mathbf{M}_{ref,Y}(\theta_x) \cdot \mathbf{M}_{ref,X}(\theta_y) \cdot \vec{V}_{in}
+\end{equation}
 \end{enumerate}
 
-\subsubsection{Ray-Plane Intersection}
-With the final direction vector \(\vec{R}_{final} = [R_x, R_y, R_z]^T\), we can find where it hits the screen. Assuming the second mirror is at the origin for simplicity, the parametric equation for the ray is \(\vec{P}(t) = t \cdot \vec{R}_{final}\).
-The screen is a plane defined by \(z=d\). We solve for \(t\):
-\begin{equation}
-    t \cdot R_z = d \implies t = \frac{d}{R_z}
-\end{equation}
-Substituting \(t\) back gives the final coordinates \((X_f, Y_f)\):
-\begin{equation}
-    X_f = t \cdot R_x = d \frac{R_x}{R_z} \quad \text{and} \quad Y_f = t \cdot R_y = d \frac{R_y}{R_z}
-\end{equation}
-This completes the forward kinematic model. However, for control, we need the inverse.
+This formulation makes the "entanglement" explicit. The total transformation matrix is the product of two matrices, each dependent on one of the control angles. Because matrix multiplication is not commutative \((\mathbf{A}\mathbf{B} \neq \mathbf{B}\mathbf{A})\), the final result is a complex function where the influences of \(\theta_x\) and \(\theta_y\) are thoroughly mixed. This elegantly demonstrates why a simple, separable analytical solution for the inverse kinematics is not possible.
 
 \subsection{Inverse Kinematics: The Challenge of Target-to-Angle Mapping}
 
-For any practical application, we must solve the inverse problem: given a desired target on the screen \((X_{target}, Y_{target})\), what are the required mirror angles \((\theta_x, \theta_y)\)? This is the inverse kinematics (IK) problem.
+For any practical control application, we must solve the inverse problem: given a desired target on the screen \((X_{target}, Y_{target})\), what are the required mirror angles \((\theta_x, \theta_y)\)? This is the inverse kinematics (IK) problem.
 
-Forward kinematics is insufficient for real-time control, especially on a mobile platform, because:
+The forward kinematic model, while accurate for simulation, is insufficient for real-time control, especially on a mobile platform, because:
 \begin{itemize}
-    \item The pivot point \([0,0,0]\) is no longer static; it is moving and vibrating.
-    \item We need to solve for angles in real-time to track a target.
-    \item The forward mapping is complex and non-linear, making direct analytical inversion impractical for a real-world system with mechanical imperfections and misalignments.
+\item The reference frame is no longer static; the entire scanner assembly, including the mirror pivots and the screen plane, is moving and vibrating relative to the world.
+\item The system must solve for angles in real-time to track a target, compensating for both the target's position and the platform's own motion.
+\item As demonstrated, the forward mapping \((X_f, Y_f) = f(\theta_x, \theta_y)\) is a complex, non-linear, and coupled function. A direct analytical inversion to find \((\theta_x, \theta_y) = f^{-1}(X_f, Y_f)\) is mathematically intractable for a real-time system.
 \end{itemize}
 
 \subsubsection{Analytical vs. Numerical IK}

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.8.2)  7 AUG 2025 01:27
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.8.2)  12 AUG 2025 08:02
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -267,30 +267,30 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 [1{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
 
 [2]
-<./images/optics_of_galvo_scanner.png, id=25, 268.48305pt x 245.35664pt>
+<./images/optics_of_galvo_scanner.png, id=24, 268.48305pt x 245.35664pt>
 File: ./images/optics_of_galvo_scanner.png Graphic file (type png)
 <use ./images/optics_of_galvo_scanner.png>
-Package pdftex.def Info: ./images/optics_of_galvo_scanner.png  used on input line 187.
+Package pdftex.def Info: ./images/optics_of_galvo_scanner.png  used on input line 181.
 (pdftex.def)             Requested size: 317.07614pt x 289.77664pt.
 
 
 [3]
 
 [4 <./images/optics_of_galvo_scanner.png>]
-Overfull \hbox (2.74205pt too wide) in paragraph at lines 228--229
-[]\OT1/cmr/bx/n/12 First Re-flec-tion (X-mirror): \OT1/cmr/m/n/12 The new nor-mal of the X-mirror is $[] = \OT1/cmr/bx/n/12 R[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^R[]\OT1/cmr/m/n/12 )[]$.
- []
 
-
-Overfull \hbox (2.97827pt too wide) in paragraph at lines 244--244
+[5]
+Overfull \hbox (2.97827pt too wide) in paragraph at lines 266--266
 []\OT1/cmr/bx/n/14.4 Inverse Kine-mat-ics: The Chal-lenge of Target-to-Angle Map-
  []
 
 
 
-[5]
-
 [6]
+Overfull \hbox (15.7524pt too wide) in paragraph at lines 274--275
+\OT1/cmr/m/n/12 linear, and cou-pled func-tion. A di-rect an-a-lyt-i-cal in-ver-sion to find $(\OML/cmm/m/it/12 ^^R[]; ^^R[]\OT1/cmr/m/n/12 ) = \OML/cmm/m/it/12 f[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 X[]; Y[]\OT1/cmr/m/n/12 )$
+ []
+
+
 
 [7]
 
@@ -300,25 +300,27 @@ Overfull \hbox (2.97827pt too wide) in paragraph at lines 244--244
 
 [10]
 
-[11] (./report.aux)
+[11]
+
+[12] (./report.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 4183 strings out of 473190
- 65499 string characters out of 5715807
- 561035 words of memory out of 5000000
- 27381 multiletter control sequences out of 15000+600000
- 571391 words of font info for 83 fonts, out of 8000000 for 9000
+ 4179 strings out of 473190
+ 65451 string characters out of 5715807
+ 563035 words of memory out of 5000000
+ 27378 multiletter control sequences out of 15000+600000
+ 571053 words of font info for 81 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  79i,10n,93p,807b,241s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on report.pdf (14 pages, 590764 bytes).
+</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
+Output written on report.pdf (15 pages, 598165 bytes).
 PDF statistics:
- 117 PDF objects out of 1000 (max. 8388607)
- 73 compressed objects within 1 object stream
+ 120 PDF objects out of 1000 (max. 8388607)
+ 75 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  6 words of extra memory for PDF output out of 10000 (max. 10000000)
 
