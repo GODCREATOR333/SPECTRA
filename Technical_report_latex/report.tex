@@ -305,8 +305,216 @@ We use this matrix in an iterative algorithm to converge on the correct angles.
 \end{enumerate}
 This iterative process allows the system to find the correct angles even for a complex, non-ideal mechanical setup and is the core of the high-level steering control.
 
+\subsubsection{Limitations of the Jacobian Transpose Method}
+While computationally efficient, this basic iterative method has a critical flaw for a physical system: it is unconstrained. The algorithm has no inherent knowledge of the galvanometer's mechanical limits. If a target is commanded near or outside the scanner's reachable workspace, this algorithm will calculate and command angles (e.g., \(\theta_x = 15^\circ\)) that are physically impossible for the actuator to achieve. This can lead to actuator saturation, instability, and unpredictable behavior at the edges of the workspace. For a robust, "battle-ready" system, we must be able to handle these physical constraints gracefully.
+
+\subsection{Enhanced Solution: Constrained Optimization}
+
+To address the limitations of the unconstrained approach, we re-frame the IK problem as a formal optimization problem. The goal is no longer just to find *any* solution, but to find the *best possible* solution that satisfies all physical constraints. This is achieved by finding the angle vector \(\vec{\theta}\) that minimizes a scalar Cost Function, \(C(\vec{\theta})\).
+
+\subsubsection{The Cost Function}
+The Cost Function mathematically defines the "total error" of the system, balancing pointing accuracy with adherence to physical limits.
+\begin{equation}
+C(\vec{\theta}) = \frac{1}{2} || \text{FK}(\vec{\theta}) - \vec{P}_{target} ||^2 + \beta H(\vec{\theta}, \vec{\theta}_{max})
+\label{eq:cost_function}
+\end{equation}
+
+The function consists of two terms:
+\begin{itemize}
+\item \textbf{Accuracy Term:} \(\frac{1}{2} || \text{FK}(\vec{\theta}) - \vec{P}_{target} ||^2\) is the squared distance error. Minimizing this term drives the laser to the target.
+\item \textbf{Constraint Term:} \(H(\vec{\theta}, \vec{\theta}_{max})\) is a \textbf{barrier function} that penalizes angles approaching their limits. A logarithmic barrier is used, which approaches infinity as any angle \(\theta_i\) nears its limit \(\pm\theta_{max}\), creating a "force field" that the optimizer will not violate.
+\end{itemize}
+The scalar weight \(\beta\) controls the strength of this barrier.
+
+\subsubsection{Solution via Gradient Descent}
+The cost function is minimized using the Gradient Descent algorithm, which iteratively updates the angles by taking steps in the direction opposite to the gradient of the cost function.
+\begin{equation}
+\vec{\theta}_{k+1} = \vec{\theta}_k - \alpha \nabla C(\vec{\theta}_k)
+\end{equation}
+The gradient \(\nabla C\) is derived from Equation \ref{eq:cost_function} and is composed of the gradient of both the accuracy and the barrier terms. The gradient of the accuracy term is found to be \(\mathbf{J}(\vec{\theta})^T \cdot (\text{FK}(\vec{\theta}) - \vec{P}_{target})\).
+
+\vspace*{0.5cm}
+
+This constrained optimization framework represents the final, robust solution. It leverages the efficiency of the Jacobian while formally incorporating actuator limits. This ensures that the calculated angles are always physically achievable, providing stable and predictable behavior across the entire workspace and preventing the controller from commanding impossible states. This is the core algorithm for the high-level steering controller.
+
+\subsubsection{Algorithm Stability and Convergence}
+
+The stability of the numerical IK solver is a critical consideration. Unlike an analytical solution, an iterative algorithm's performance is not guaranteed and depends on its formulation and tuning.
+
+The proposed algorithm incorporates several features to ensure stable and predictable convergence:
+
+\begin{itemize}
+\item \textbf{Use of the Jacobian Transpose:} The choice of the Jacobian Transpose method, \(\Delta\boldsymbol{\theta} = \alpha \mathbf{J}^T \vec{e}\), over a direct matrix inverse, \(\Delta\boldsymbol{\theta} = \mathbf{J}^{-1} \vec{e}\), is a key stabilizing factor. The transpose method is less susceptible to issues with matrix singularities (positions where the inverse is undefined) and generally provides a smoother, more stable path towards the solution, even if it sometimes requires more iterations.
+
+\item \textbf{The Learning Rate (\(\alpha\)):} The scalar step size, \(\alpha\), is a crucial tuning parameter. A small, fixed value for \(\alpha\) will be chosen to prevent the algorithm from taking excessively large steps. This prevents overshooting the target and ensures the iterative process does not become unstable or oscillate.
+
+\item \textbf{Constraint Handling:} The inclusion of the logarithmic barrier function in the constrained optimization framework is another critical stabilizing feature. By preventing the solver from ever commanding angles outside the known physical limits of the actuator, it eliminates a major source of potential instability and ensures all commanded states are physically achievable.`
+
+  
+
+\end{itemize}
+
+\textbf{Verification Method:}
+The stability of the implemented algorithm will be verified experimentally. The system will be subjected to a series of step commands to various points within the workspace, including points at the extreme edges. The convergence of the error vector \(||\vec{e}||\) over the iterations will be plotted and analyzed. A stable system will demonstrate a smooth, monotonic decrease in error. Any oscillatory or divergent behavior will be addressed by tuning the learning rate \(\alpha\) and the barrier weight \(\beta\).
 \newpage
 
+
+% ===================================================================
+% CHAPTER 3: MECHANICAL DESIGN
+% ===================================================================
+\section{Mechanical Design and System Architecture}
+
+The efficacy of the laser stabilization and targeting system is fundamentally dependent on the precision, rigidity, and thermal stability of its mechanical architecture. This section details the design of the physical assembly, outlining the system layout, the novel solution for the kinematic mirror mounting, and the rationale behind the material selection and thermal management strategies.
+
+\subsection{System Layout and Kinematic Mounting}
+
+The system is configured as a traditional orthogonal two-axis scanner to produce a Cartesian motion profile. The primary actuators are two Voice Coil Motors (VCMs) salvaged from Hard Disk Drives (HDDs), chosen for their low inertia and high-speed response.
+
+\begin{itemize}
+\item The \textbf{X-axis galvanometer assembly} is mounted horizontally onto the main system baseplate. Its pivot axis is oriented vertically (\(Z_{axis}\)).
+\item The \textbf{Y-axis galvanometer assembly} is mounted on a rigid, 90-degree vertical support structure. Its pivot axis is oriented horizontally (\(Y_{axis}\)).
+\end{itemize}
+
+A critical design feature is the inclusion of a \textbf{kinematic mounting scheme} for each galvanometer assembly. This acknowledges that perfect manufacturing and assembly are impractical and provides a necessary mechanism for fine-grained, post-assembly calibration. The mounts are designed with slotted holes and utilize a three-point screw adjustment system. This provides precise, independent control over the position and orientation of each axis, enabling the tuning of the inter-mirror distance (\(e\)) and ensuring perfect orthogonality after the system is fully assembled.
+
+% INSERT FIGURE: Full CAD Assembly
+\begin{figure}[H]
+\centering
+% \includegraphics[width=1.0\textwidth]{./images/your_full_assembly_cad.png} % Replace with your filename
+\caption{CAD model of the complete dual-axis galvanometer assembly, illustrating the orthogonal arrangement, VCM actuators, and kinematic mounting points on the main baseplate.}
+\label{fig:full_assembly}
+\end{figure}
+
+\subsection{VCM Mirror Mount: The Decoupled Slotted-Plate Solution}
+
+The core of the mechanical design addresses the kinematic mounting paradox, wherein the mirror's reflective surface must lie on the actuator's pivot axis, a volume physically occupied by the bearing assembly. To resolve this, a \textbf{decoupled, slotted-plate mounting system} was designed.
+
+This system consists of a stationary plate, fabricated from the chosen polymer, which is mounted to the VCM's fixed base. A precision slot, with its centerline designed to be perfectly collinear with the VCM's axis of rotation, provides a rigid, kinematically correct guide for the mirror element. The moving arm of the VCM actuates the mirror via a small, custom-designed fork. This architecture provides superior geometric accuracy and rigidity compared to a cantilevered bracket by separating the function of alignment (handled by the stationary plate) from the function of actuation (handled by the moving arm).
+
+% INSERT FIGURE: VCM Mount Design
+\begin{figure}[H]
+\centering
+% \includegraphics[width=0.8\textwidth]{./images/your_vcm_mount_cad.png} % Replace with your filename
+\caption{Detailed view of the custom slotted-plate mirror mount. The stationary plate provides a precise guide for the mirror, ensuring its reflective surface remains on the pivot axis.}
+\label{fig:vcm_mount}
+\end{figure}
+
+\subsection{Material Selection and Thermal Management Strategy}
+
+The selection of the fabrication material involved a critical trade-off analysis between mechanical performance and thermal stability. The primary heat sources are the VCM coils, which can reach elevated temperatures during high-duty cycle operation.
+
+\subsubsection{Material Choice}
+A \textbf{PLA+ (Professional PLA)} filament was selected for all 3D printed structural components. This decision prioritizes the material's superior mechanical properties at ambient temperatures. The higher Young's Modulus (stiffness) and lower susceptibility to creep under static load compared to other FDM materials like PETG are critical for maintaining the long-term dimensional stability and precision of the kinematic mounts and mirror alignment slots.
+
+\subsubsection{Thermal Management}
+To mitigate the risk of thermal deformation associated with PLA+'s low glass transition temperature (approx. 60°C), a \textbf{thermal break} is integrated into the mounting design. The VCM assemblies are mounted via metal standoffs, creating an insulating air gap that minimizes heat transfer to the PLA+ baseplate. Furthermore, thin \textbf{polyimide (Kapton) tape washers} are used at the screw-standoff interfaces. Kapton tape is a high-performance polymer film that serves as both a superior electrical insulator and a robust thermal insulator, effectively blocking the conductive heat path through the mounting screws. This strategy allows the system to leverage the mechanical benefits of PLA+ while ensuring thermal stability during operation.
+
+
+\subsection{Optical Component Sizing and Scope}
+
+To ensure the full angular scan range is achieved without beam clipping (vignetting), the minimum required dimensions for the mirrors were calculated. These calculations are based on the system's geometry and do not extend to lens design, beam focusing, or power density analysis; the optical design is confined to the geometric Line-of-Sight (LOS) stabilization.
+
+\subsubsection{Definitions}
+\begin{itemize}
+\item \(D_{beam}\): The diameter of the incoming laser beam at the first mirror.
+\item \(e\): The inter-mirror pivot distance, obtained from the CAD model.
+\item \(\theta_{y,mech}\): The maximum mechanical rotation angle of the X-mirror.
+\item \(\alpha_{inc}\): The angle of incidence of the beam on the mirrors (typically 45°).
+\item \(S_m\): A safety margin factor (e.g., 1.2 for a 20\% margin).
+\end{itemize}
+
+\subsubsection{X-Mirror (First Mirror) Dimensions}
+The X-mirror must intercept the stationary incoming beam. The beam's circular cross-section projects as an ellipse onto the tilted mirror surface.
+\begin{align}
+W_x &= S_m \cdot D_{beam} \\
+L_x &= S_m \cdot (D_{beam} / \cos(\alpha_{inc}))
+\end{align}
+Where \(W_x\) is the minimum width and \(L_x\) is the minimum length.
+
+\subsubsection{Y-Mirror (Second Mirror) Dimensions}
+The Y-mirror is more complex as it must intercept a beam that is already being scanned by the X-mirror. Its dimensions must account for the beam's footprint plus the full length of the scanned line.
+\begin{align}
+W_y &= S_m \cdot \left[ (D_{beam} / \cos(\alpha_{inc})) + (2 \cdot e \cdot \tan(\theta_{y,mech})) \right] \\
+L_y &= S_m \cdot (D_{beam} / \cos(\alpha_{inc}))
+\end{align}
+Where \(W_y\) is the minimum width (along its pivot axis) and \(L_y\) is the minimum length. The length \(L_y\) is determined by the beam footprint, as the primary scan occurs along the width \(W_y\). A more rigorous model would include second-order effects on \(L_y\), but for small angles, they are negligible.
+
+These calculations provide the minimum required clear aperture for the optical elements, guiding the selection and fabrication of the mirrors from HDD platter stock.
+
+\subsection{Optical Component Sizing for Maximum Scan Range}
+
+A critical aspect of the mechanical design is the determination of the minimum required mirror dimensions to prevent beam clipping (vignetting) across the full operational range of the actuators. An insufficient mirror size would act as a mechanical aperture, limiting the achievable scan field. The following analysis calculates the minimum required clear aperture for both the X and Y-axis mirrors based on the system's specified geometry and maximum angular deflection.
+
+\subsubsection{System Parameters and Definitions}
+The calculations are based on the following system parameters, derived from component datasheets, the CAD model, and the project's operational requirements:
+
+\begin{itemize}
+\item \textbf{Actuator Mechanical Range (\(\theta_{mech,max}\))}: The VCM actuators have a total mechanical range of 30°, corresponding to a maximum deflection from the center position of \(\pm 15^\circ\). Therefore, \(\theta_{mech,max} = 15^\circ\).
+\item \textbf{Laser Beam Diameter (\(D_{beam}\))}: The laser module produces a beam with an approximate diameter of 2.0 mm.
+\item \textbf{Inter-Mirror Pivot Distance (\(e\))}: The distance between the X-mirror and Y-mirror pivot axes, as determined from the CAD assembly, is 15.0 mm.
+\item \textbf{Angle of Incidence (\(\alpha_{inc}\))}: For a standard orthogonal layout, the beam angle of incidence on each mirror surface is 45°.
+\item \textbf{Safety Margin (\(S_m\))}: A safety margin of 1.2 (20\%) is applied to all calculations to account for minor misalignments and beam divergence.
+\end{itemize}
+
+\subsubsection{X-Mirror (First Mirror) Dimension Calculation}
+The first mirror must be large enough to intercept the stationary incoming beam. The beam's circular cross-section of diameter \(D_{beam}\) projects as an ellipse onto the mirror surface, which is tilted at \(\alpha_{inc}\).
+
+The minimum required width (\(W_x\)) and length (\(L_x\)) are given by:
+\begin{align}
+W_x &= S_m \cdot D_{beam} \\
+L_x &= S_m \cdot (D_{beam} / \cos(\alpha_{inc}))
+\end{align}
+
+Substituting the system parameters:
+\begin{align}
+W_x &= 1.2 \cdot 2.0\,\text{mm} = 2.4\,\text{mm} \\
+L_x &= 1.2 \cdot (2.0\,\text{mm} / \cos(45^\circ)) \approx 1.2 \cdot (2.0\,\text{mm} / 0.707) \approx 3.4\,\text{mm}
+\end{align}
+Therefore, the minimum required clear aperture for the X-mirror is \textbf{2.4 mm x 3.4 mm}.
+
+\subsubsection{Y-Mirror (Second Mirror) Dimension Calculation}
+The second mirror is more complex as it must intercept a beam that is already being scanned by the first mirror. Its width must account for both the beam's own footprint and the full linear sweep produced by the X-mirror's rotation.
+
+The minimum required width (\(W_y\)) along its pivot axis is given by:
+\begin{equation}
+W_y = S_m \cdot \left[ (D_{beam} / \cos(\alpha_{inc})) + (2 \cdot e \cdot \tan(\theta_{y,mech,max})) \right]
+\end{equation}
+The minimum required length (\(L_y\)) is determined by the beam footprint, as the primary scan occurs along the width:
+\begin{equation}
+L_y = S_m \cdot (D_{beam} / \cos(\alpha_{inc}))
+\end{equation}
+
+Substituting the system parameters into the equation for the critical width \(W_y\):
+\begin{align}
+W_y &= 1.2 \cdot \left[ (2.0\,\text{mm} / \cos(45^\circ)) + (2 \cdot 15.0\,\text{mm} \cdot \tan(15^\circ)) \right] \\
+W_y &= 1.2 \cdot [ 2.83\,\text{mm} + (30.0\,\text{mm} \cdot 0.2679) ] \\
+W_y &= 1.2 \cdot [ 2.83\,\text{mm} + 8.04\,\text{mm} ] = 1.2 \cdot [10.87\,\text{mm}] \approx 13.04\,\text{mm}
+\end{align}
+The length calculation remains the same: \(L_y \approx 3.4\,\text{mm}\).
+
+Therefore, the minimum required clear aperture for the Y-mirror is \textbf{13.1 mm x 3.4 mm}. These dimensions will be used for the fabrication of the mirrors from HDD platter stock to ensure the system can achieve its maximum theoretical scan range without vignetting.
+
+\subsubsection{Maximum Scan Field Calculation}
+The maximum scan field is determined by the maximum optical deflection angle, which is a direct consequence of the actuator's mechanical range due to the 2\(\theta\) rule.
+
+\begin{equation}
+\theta_{opt,max} = 2 \cdot \theta_{mech,max} = 2 \cdot 15^\circ = 30^\circ
+\end{equation}
+
+The maximum linear displacement (\(X_{max}\)) from the center of the screen along a single axis is given by the planar projection formula:
+\begin{equation}
+X_{max} = d \cdot \tan(\theta_{opt,max})
+\end{equation}
+
+Substituting the system parameters:
+\begin{align}
+X_{max} &= 500\,\text{mm} \cdot \tan(30^\circ) \\
+X_{max} &\approx 500\,\text{mm} \cdot 0.57735 \approx 288.7\,\text{mm}
+\end{align}
+
+The total width of the scan field is twice this maximum displacement. This results in a theoretical maximum scan area at the 50 cm projection distance of approximately \textbf{57.7 cm x 57.7 cm}. This large field of view confirms that the VCM actuators provide a sufficient angular range for a wide variety of applications.
+
+\newpage
 % ===================================================================
 % CHAPTER 3: SYSTEM DYNAMICS AND CONTROL
 % ===================================================================

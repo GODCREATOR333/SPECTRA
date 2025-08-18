@@ -14,17 +14,42 @@
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {1.3.1}Analytical vs. Numerical IK}{7}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.4}Numerical Solution: The Jacobian Iterative Method}{7}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {1.4.1}Iterative Inverse Kinematic Algorithm}{7}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}System Dynamics and Control}{9}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}State-Space Representation}{9}{}\protected@file@percent }
-\newlabel{eq:state_equation}{{13}{9}{}{equation.13}{}}
-\newlabel{eq:output_equation}{{14}{9}{}{equation.14}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Controllability}{10}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Observability}{10}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}The Control Workflow: A Full Picture}{10}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Project Objectives}{11}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Proposed Methodology}{11}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Stage 1: System Design and Fabrication}{11}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Stage 2: Modeling and Control System Implementation}{12}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Stage 3: Vision and Sensor Fusion Development}{12}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Stage 4: Experimental Validation and Analysis}{12}{}\protected@file@percent }
-\gdef \@abspage@last{15}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.4.2}Limitations of the Jacobian Transpose Method}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5}Enhanced Solution: Constrained Optimization}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.5.1}The Cost Function}{8}{}\protected@file@percent }
+\newlabel{eq:cost_function}{{13}{8}{}{equation.13}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.5.2}Solution via Gradient Descent}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.5.3}Algorithm Stability and Convergence}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Mechanical Design and System Architecture}{10}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}System Layout and Kinematic Mounting}{10}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces CAD model of the complete dual-axis galvanometer assembly, illustrating the orthogonal arrangement, VCM actuators, and kinematic mounting points on the main baseplate.}}{10}{}\protected@file@percent }
+\newlabel{fig:full_assembly}{{2}{10}{}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}VCM Mirror Mount: The Decoupled Slotted-Plate Solution}{10}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Detailed view of the custom slotted-plate mirror mount. The stationary plate provides a precise guide for the mirror, ensuring its reflective surface remains on the pivot axis.}}{10}{}\protected@file@percent }
+\newlabel{fig:vcm_mount}{{3}{10}{}{figure.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Material Selection and Thermal Management Strategy}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.1}Material Choice}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.2}Thermal Management}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Optical Component Sizing and Scope}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.1}Definitions}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.2}X-Mirror (First Mirror) Dimensions}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.3}Y-Mirror (Second Mirror) Dimensions}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Optical Component Sizing for Maximum Scan Range}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.1}System Parameters and Definitions}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.2}X-Mirror (First Mirror) Dimension Calculation}{13}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.3}Y-Mirror (Second Mirror) Dimension Calculation}{13}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.4}Maximum Scan Field Calculation}{14}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}System Dynamics and Control}{15}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}State-Space Representation}{15}{}\protected@file@percent }
+\newlabel{eq:state_equation}{{32}{15}{}{equation.32}{}}
+\newlabel{eq:output_equation}{{33}{15}{}{equation.33}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Controllability}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Observability}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}The Control Workflow: A Full Picture}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Project Objectives}{17}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Proposed Methodology}{17}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Stage 1: System Design and Fabrication}{17}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Stage 2: Modeling and Control System Implementation}{18}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Stage 3: Vision and Sensor Fusion Development}{18}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Stage 4: Experimental Validation and Analysis}{18}{}\protected@file@percent }
+\gdef \@abspage@last{21}
