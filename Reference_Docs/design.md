@@ -108,3 +108,35 @@ Good luck, and happy designing.
 ---
 
 
+
+------------------- Thingverse Stuff i am using to give to references and citations -----------------
+
+https://www.thingiverse.com/thing:2336754  ---creator polyfractal on thingverse
+
+https://www.thingiverse.com/thing:1004337/ ---creator dmarett on thingverse
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

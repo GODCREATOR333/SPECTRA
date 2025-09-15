@@ -1,0 +1,4 @@
+Optical mount for lens / mirror / prism  by dmarett on Thingiverse: https://www.thingiverse.com/thing:1004337
+
+Summary:
+This is a kinematic optical platform mount designed to fit onto a regular optical breadboard using 1/4-20 mounting holes (or metric).  It uses a mounting arm (PM1 style, see separate PM1 file ) to hold a square optical component against the lower platform. It uses 6-32 screws with knobs to control the movement of the platform left-right and pivot up-down. Mounting screw is 6-32 and can mount onto a steel 1/2 inch post with a 6-32 thread, or a 3D printed post (see separate file). The component requires a number of metal parts:Parts:2  6-32 x 3/8" internally threaded standoffs4  6-32 nuts1 6-32 x 1/4" screw2  6-32 x 1/2" screws (platform mount)2  6-32 x 1.5" screws1  6-32 x 3/4" screw (ball mount)2  1/2" springs with hook ends4  7/16" x 1/16" aluminum pins  

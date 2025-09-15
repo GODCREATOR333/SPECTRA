@@ -1,5 +1,6 @@
 \documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
+\usepackage{subcaption}  
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{geometry}
@@ -32,7 +33,6 @@
         Unauthorized access, reproduction, distribution, or disclosure of this material, in whole or in part, is strictly prohibited. Violators will be subject to the fullest extent of applicable institutional and civil policies.
         
         \vspace{0.5cm}
-        \textbf{LEVEL V CLEARANCE REQUIRED}
     }}
     
  
@@ -42,7 +42,6 @@
         \textbf{STUDENT NAME:} & S. HARI PREETHAM \\
         \textbf{SUPERVISING AUTHORITY:} & DR. A. CHENNAKESAVA REDDY \\
         \textbf{INSTITUTION:} & JNTUH UCESTH \\
-        \textbf{DATE OF ISSUE:} & \today
     \end{tabular}
     
     \vspace{2cm}
@@ -375,15 +374,76 @@ The system is configured as a traditional orthogonal two-axis scanner to produce
 \item The \textbf{Y-axis galvanometer assembly} is mounted on a rigid, 90-degree vertical support structure. Its pivot axis is oriented horizontally (\(Y_{axis}\)).
 \end{itemize}
 
-A critical design feature is the inclusion of a \textbf{kinematic mounting scheme} for each galvanometer assembly. This acknowledges that perfect manufacturing and assembly are impractical and provides a necessary mechanism for fine-grained, post-assembly calibration. The mounts are designed with slotted holes and utilize a three-point screw adjustment system. This provides precise, independent control over the position and orientation of each axis, enabling the tuning of the inter-mirror distance (\(e\)) and ensuring perfect orthogonality after the system is fully assembled.
+Unlike commercial galvo scanners, the X-axis mirror subassembly is not a kinematic mount. Instead, it is secured by four M4 bolts with nut–washer sets to a rigid reference platform. Slots are included in the mount to allow linear adjustment of the interface between the X-axis and Y-axis structures. This design provides the flexibility to calibrate the inter-mirror distance for different mirror sizes and optical path requirements, rather than fixing the geometry permanently.
 
-% INSERT FIGURE: Full CAD Assembly
+Both X- and Y-axis mounts incorporate embedded hexagonal cavities to seat metal hex nuts within the 3D-printed body. This reinforcement was necessary to withstand the flexural forces imposed by the strong permanent magnets of the HDD actuators. Tolerances in these assemblies are often below 1–2 mm, meaning that even slight deformation of the plastic body would cause misalignment or structural failure. The embedded nut design transfers clamping loads directly into the steel hardware, reducing stress concentration in the printed polymer and improving long-term rigidity.
+
+The Y-axis vertical mount also uses through-holes and embedded nuts to achieve rigid mating with the baseplate, ensuring orthogonality between axes. To compensate for additive manufacturing limitations, the geometry was modified from the original HDD structure. The redesign introduced structural ribs, screw slots, and local thickening in high-stress regions to increase stiffness while keeping the assembly lightweight.
+% ================== Part-Level Analysis ==================
 \begin{figure}[H]
-\centering
-% \includegraphics[width=1.0\textwidth]{./images/your_full_assembly_cad.png} % Replace with your filename
-\caption{CAD model of the complete dual-axis galvanometer assembly, illustrating the orthogonal arrangement, VCM actuators, and kinematic mounting points on the main baseplate.}
-\label{fig:full_assembly}
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/1.png}
+        \caption{X-axis VCM actuator mount}
+        \label{fig:x_mount}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/2.png}
+        \caption{Cross-section area analysis of X-axis mount}
+        \label{fig:x_cross}
+    \end{subfigure}
+    \caption{X-axis actuator mount and corresponding cross-section analysis.}
+    \label{fig:x_mount_combo}
 \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/4.png}
+        \caption{Y-axis VCM actuator mount}
+        \label{fig:y_mount}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/7.png}
+        \caption{Cross-section area analysis of Y-axis mount}
+        \label{fig:y_cross}
+    \end{subfigure}
+    \caption{Y-axis actuator mount and corresponding cross-section analysis.}
+    \label{fig:y_mount_combo}
+\end{figure}
+
+
+% ================== Assembly CAD & Structural Analysis ==================
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{./images/8.png}
+    \caption{CAD model of the complete dual-axis galvanometer assembly, showing orthogonal arrangement of VCM actuators and kinematic mounting points on the main baseplate.}
+    \label{fig:assembly_cad}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{./images/9.png}
+    \caption{Structural cross-section area analysis and mating surfaces of the full assembly. The mounts are fastened using M4 nuts, bolts, and washers.}
+    \label{fig:assembly_analysis}
+\end{figure}
+
+
+% ================== Physical Prototype ==================
+\begin{figure}[H]
+    \centering
+    \includegraphics[angle=-90, width=0.85\textwidth,
+        trim={25cm 1cm 20cm 1cm}, clip]{./images/11.jpg}
+    \caption{Photograph of the 3D-printed dual-axis galvanometer assembly.}
+    \label{fig:assembly_prototype}
+\end{figure}
+
 
 \subsection{VCM Mirror Mount: The Decoupled Slotted-Plate Solution}
 

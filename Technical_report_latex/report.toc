@@ -17,27 +17,27 @@
 \contentsline {subsubsection}{\numberline {1.5.3}Algorithm Stability and Convergence}{9}{}%
 \contentsline {section}{\numberline {2}Mechanical Design and System Architecture}{10}{}%
 \contentsline {subsection}{\numberline {2.1}System Layout and Kinematic Mounting}{10}{}%
-\contentsline {subsection}{\numberline {2.2}VCM Mirror Mount: The Decoupled Slotted-Plate Solution}{10}{}%
-\contentsline {subsection}{\numberline {2.3}Material Selection and Thermal Management Strategy}{11}{}%
-\contentsline {subsubsection}{\numberline {2.3.1}Material Choice}{11}{}%
-\contentsline {subsubsection}{\numberline {2.3.2}Thermal Management}{11}{}%
-\contentsline {subsection}{\numberline {2.4}Optical Component Sizing and Scope}{11}{}%
-\contentsline {subsubsection}{\numberline {2.4.1}Definitions}{11}{}%
-\contentsline {subsubsection}{\numberline {2.4.2}X-Mirror (First Mirror) Dimensions}{12}{}%
-\contentsline {subsubsection}{\numberline {2.4.3}Y-Mirror (Second Mirror) Dimensions}{12}{}%
-\contentsline {subsection}{\numberline {2.5}Optical Component Sizing for Maximum Scan Range}{12}{}%
-\contentsline {subsubsection}{\numberline {2.5.1}System Parameters and Definitions}{12}{}%
-\contentsline {subsubsection}{\numberline {2.5.2}X-Mirror (First Mirror) Dimension Calculation}{13}{}%
-\contentsline {subsubsection}{\numberline {2.5.3}Y-Mirror (Second Mirror) Dimension Calculation}{13}{}%
-\contentsline {subsubsection}{\numberline {2.5.4}Maximum Scan Field Calculation}{14}{}%
-\contentsline {section}{\numberline {3}System Dynamics and Control}{15}{}%
-\contentsline {subsection}{\numberline {3.1}State-Space Representation}{15}{}%
-\contentsline {subsection}{\numberline {3.2}Controllability}{16}{}%
-\contentsline {subsection}{\numberline {3.3}Observability}{16}{}%
-\contentsline {subsection}{\numberline {3.4}The Control Workflow: A Full Picture}{16}{}%
-\contentsline {section}{\numberline {4}Project Objectives}{17}{}%
-\contentsline {section}{\numberline {5}Proposed Methodology}{17}{}%
-\contentsline {subsection}{\numberline {5.1}Stage 1: System Design and Fabrication}{17}{}%
-\contentsline {subsection}{\numberline {5.2}Stage 2: Modeling and Control System Implementation}{18}{}%
-\contentsline {subsection}{\numberline {5.3}Stage 3: Vision and Sensor Fusion Development}{18}{}%
-\contentsline {subsection}{\numberline {5.4}Stage 4: Experimental Validation and Analysis}{18}{}%
+\contentsline {subsection}{\numberline {2.2}VCM Mirror Mount: The Decoupled Slotted-Plate Solution}{14}{}%
+\contentsline {subsection}{\numberline {2.3}Material Selection and Thermal Management Strategy}{15}{}%
+\contentsline {subsubsection}{\numberline {2.3.1}Material Choice}{15}{}%
+\contentsline {subsubsection}{\numberline {2.3.2}Thermal Management}{15}{}%
+\contentsline {subsection}{\numberline {2.4}Optical Component Sizing and Scope}{15}{}%
+\contentsline {subsubsection}{\numberline {2.4.1}Definitions}{15}{}%
+\contentsline {subsubsection}{\numberline {2.4.2}X-Mirror (First Mirror) Dimensions}{16}{}%
+\contentsline {subsubsection}{\numberline {2.4.3}Y-Mirror (Second Mirror) Dimensions}{16}{}%
+\contentsline {subsection}{\numberline {2.5}Optical Component Sizing for Maximum Scan Range}{16}{}%
+\contentsline {subsubsection}{\numberline {2.5.1}System Parameters and Definitions}{16}{}%
+\contentsline {subsubsection}{\numberline {2.5.2}X-Mirror (First Mirror) Dimension Calculation}{17}{}%
+\contentsline {subsubsection}{\numberline {2.5.3}Y-Mirror (Second Mirror) Dimension Calculation}{17}{}%
+\contentsline {subsubsection}{\numberline {2.5.4}Maximum Scan Field Calculation}{18}{}%
+\contentsline {section}{\numberline {3}System Dynamics and Control}{19}{}%
+\contentsline {subsection}{\numberline {3.1}State-Space Representation}{19}{}%
+\contentsline {subsection}{\numberline {3.2}Controllability}{20}{}%
+\contentsline {subsection}{\numberline {3.3}Observability}{20}{}%
+\contentsline {subsection}{\numberline {3.4}The Control Workflow: A Full Picture}{20}{}%
+\contentsline {section}{\numberline {4}Project Objectives}{21}{}%
+\contentsline {section}{\numberline {5}Proposed Methodology}{21}{}%
+\contentsline {subsection}{\numberline {5.1}Stage 1: System Design and Fabrication}{21}{}%
+\contentsline {subsection}{\numberline {5.2}Stage 2: Modeling and Control System Implementation}{22}{}%
+\contentsline {subsection}{\numberline {5.3}Stage 3: Vision and Sensor Fusion Development}{22}{}%
+\contentsline {subsection}{\numberline {5.4}Stage 4: Experimental Validation and Analysis}{22}{}%
