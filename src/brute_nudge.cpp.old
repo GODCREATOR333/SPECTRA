@@ -1,0 +1,64 @@
+#include <Arduino.h>
+
+// --- Pin Definitions (MODIFIED FOR YOUR CURRENT SETUP) ---
+// We no longer define L_EN and R_EN because they are hard-wired to 3.3V
+const int LPWM_PIN = 26; // Your current Left PWM pin
+const int RPWM_PIN = 25; // Your current Right PWM pin
+
+// --- PWM Config (for the modern ledc functions) ---
+const int PWM_FREQ = 25000;
+const int PWM_RESOLUTION = 8;
+const int RPWM_CHANNEL = 0;
+const int LPWM_CHANNEL = 1;
+
+// --- TUNING KNOBS (Copied EXACTLY from your code) ---
+#define MOTOR_POWER 200      // How HARD to push (0-255). Lower is gentler.
+#define PULSE_DURATION_MS 10 // How LONG to push, in milliseconds. Lower is shorter.
+
+void setup() {
+  Serial.begin(115200);
+
+  // We don't need pinMode for L_EN/R_EN because they are always on.
+  // Instead, we set up the superior ESP32 ledc PWM channels.
+  ledcSetup(RPWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+  ledcSetup(LPWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+
+  // Attach our pins to the configured channels
+  ledcAttachPin(RPWM_PIN, RPWM_CHANNEL);
+  ledcAttachPin(LPWM_PIN, LPWM_CHANNEL);
+
+  // Start with everything OFF.
+  ledcWrite(LPWM_CHANNEL, 0);
+  ledcWrite(RPWM_CHANNEL, 0);
+
+  // Your original instructions
+  Serial.println("\n\n--- VCM Nudge Control (Adapted) ---");
+  Serial.println("Commands: 'a' (left), 'd' (right)");
+  Serial.println("---------------------------------");
+}
+
+void loop() {
+  // This loop logic is IDENTICAL to your working code.
+  if (Serial.available() > 0) {
+    char command = Serial.read();
+
+    if (command == 'a') {
+      Serial.print("Nudge Left -> ");
+      // Give a short pulse to the LEFT motor pin
+      ledcWrite(RPWM_CHANNEL, 0);          // Make sure other direction is off
+      ledcWrite(LPWM_CHANNEL, MOTOR_POWER);
+      delay(PULSE_DURATION_MS);            // This is the magic! We wait a tiny amount of time.
+      ledcWrite(LPWM_CHANNEL, 0);          // Immediately turn it off.
+      Serial.println("Done.");
+    }
+    else if (command == 'd') {
+      Serial.print("Nudge Right -> ");
+      // Give a short pulse to the RIGHT motor pin
+      ledcWrite(LPWM_CHANNEL, 0);          // Make sure other direction is off
+      ledcWrite(RPWM_CHANNEL, MOTOR_POWER);
+      delay(PULSE_DURATION_MS);            // The magic!
+      ledcWrite(RPWM_CHANNEL, 0);          // Immediately turn it off.
+      Serial.println("Done.");
+    }
+  }
+}
