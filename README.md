@@ -16,7 +16,6 @@ A **custom differential photodiode position sensor** is being developed for feed
 ## Figures  
 
 **Prototype:**  
-![SPECTRA CAD Prototype](https://github.com/user-attachments/assets/82cdcbeb-4bab-4258-86e2-2c57ebde3818)  
+![SPECTRA CAD Prototype](https://github.com/user-attachments/assets/380f30f5-5fc5-4ed3-ac8c-08af4a751247)  
 
-**Demonstration Video:**  
-[▶️ View Demo](https://github.com/user-attachments/assets/08d6f766-7242-4b48-9dd1-6b7cfafa9d73)
+**Demonstration Video:**  https://github.com/user-attachments/assets/08d6f766-7242-4b48-9dd1-6b7cfafa9d73
