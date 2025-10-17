@@ -1,8 +1,22 @@
-# SPECTRA - Dual-Stage Galvo Platform
-SPECTRA – Scanning Platform for Enhanced Coarse-fine Targeting with Real-time Alignment
-Design and Stabilization of a Dual-Stage Vision-Guided Laser Targeting Head for Autonomous Weeding Robots
 
+## Abstract  
+SPECTRA is a **laser steering system** based on a single-stage, direct-drive galvanometer.  
+It uses a **voice-coil actuator** with a mirror assembly for high-speed angular control.  
+A **custom differential photodiode position sensor** is being developed for feedback in this configuration.  
 
+---
 
-https://github.com/user-attachments/assets/69e5fdde-cfe5-4fcc-9be5-52dfbb8b54ef
+## Current Status  
+- Functional CAD prototype fabricated and tested.  
+- Operated at ~30% laser power in open-loop mode.  
+- Closed-loop implementation (PID, LQR, MPC) under development.  
 
+---
+
+## Figures  
+
+**Prototype:**  
+![SPECTRA CAD Prototype](https://github.com/user-attachments/assets/82cdcbeb-4bab-4258-86e2-2c57ebde3818)  
+
+**Demonstration Video:**  
+[▶️ View Demo](https://github.com/user-attachments/assets/08d6f766-7242-4b48-9dd1-6b7cfafa9d73)
