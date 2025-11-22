@@ -174,8 +174,8 @@ class MainWindow(QtWidgets.QWidget):
         self.animation_state = {
             "Cuboid 1 (Red)": {'current_angle': 45, # The actual value q(t)
                                 'direction': 1, # Velocity vector (sign)
-                                'step': 15}, # Velocity magnitude (speed)
-                "Cuboid 2 (Blue)": {'current_angle': 45, 'direction': 1, 'step': 15}
+                                'step': 1}, # Velocity magnitude (speed)
+                "Cuboid 2 (Blue)": {'current_angle': 45, 'direction': 1, 'step': 1}
         }
         
         # --- Timer for Animation ---
@@ -248,6 +248,22 @@ class MainWindow(QtWidgets.QWidget):
         self.objects["Cuboid 2 (Blue)"] = cuboid2
         self.view.addItem(cuboid2)
 
+
+        # 1. Laser Line (Yellow)
+        self.laser_plot = GLLinePlotItem(pos=np.array([[0,0,0], [0,0,0]]), color=(1, 1, 0, 1), width=3, antialias=True)
+        self.view.addItem(self.laser_plot)
+
+        # 2. Source (Shooting from Left -X towards Origin)
+        self.laser_source = np.array([50, 0, 0])
+
+        # 3. The Screen at Z=50 (A Green Grid)
+        self.screen_grid = gl.GLGridItem()
+        self.screen_grid.setSize(x=40, y=40)
+        self.screen_grid.setSpacing(x=5, y=5)
+        # Rotate to face the beam (Standard grid is on XY plane, we assume screen is flat on XY at Z=50)
+        self.screen_grid.translate(0, 20, 50) 
+        self.view.addItem(self.screen_grid)
+
     def _create_controls(self):
         """Creates the simplified control panel with an animation button and angle displays."""
         control_container = QtWidgets.QWidget()
@@ -318,6 +334,29 @@ class MainWindow(QtWidgets.QWidget):
         self.red_angle_label.setText(f"Red (X-Rot): {red_rot_x:.1f}°")
         self.blue_angle_label.setText(f"Blue (Z-Rot): {blue_rot_z:.1f}°")
 
+        # """The Physics Logic:
+        # Notice the order: Translate first, then Rotate.
+        # We move the generic cube from
+        # (0,0,0)(0,0,0)
+        # to its mounting point
+        # (0,20,0)(0,20,0)
+        # Now the coordinate system is sitting at
+        # (0,20,0)(0,20,0)
+        # We rotate it around that new point.
+        # If you swapped these lines (Rotate then Translate), the cube would rotate around the World Origin
+        # (0,0,0)(0,0,0)
+        # down below, swinging in a huge arc."""
+
+        # --- Update Blue Cuboid 3D Object ---
+        blue_obj = self.objects["Cuboid 2 (Blue)"]
+        blue_pos = self.static_states["Cuboid 2 (Blue)"]['pos']
+        tr_blue = pg.Transform3D()
+        tr_blue.translate(*blue_pos)
+        tr_blue.rotate(blue_rot_z, 0, 0, 1)
+        tr_blue.rotate(90, 0, 1, 0)
+        tr_blue.rotate(90, 0, 0, 1)
+        blue_obj.setTransform(tr_blue)
+
         # --- Update Red Cuboid 3D Object ---
         red_obj = self.objects["Cuboid 1 (Red)"]
 
@@ -344,47 +383,57 @@ class MainWindow(QtWidgets.QWidget):
         red_obj.setTransform(tr_red)
 
 
-        # """The Physics Logic:
-        # Notice the order: Translate first, then Rotate.
-        # We move the generic cube from
-        # (0,0,0)(0,0,0)
-        # to its mounting point
-        # (0,20,0)(0,20,0)
-        # Now the coordinate system is sitting at
-        # (0,20,0)(0,20,0)
-        # We rotate it around that new point.
-        # If you swapped these lines (Rotate then Translate), the cube would rotate around the World Origin
-        # (0,0,0)(0,0,0)
-        # down below, swinging in a huge arc."""
 
-        # --- Update Blue Cuboid 3D Object ---
-        blue_obj = self.objects["Cuboid 2 (Blue)"]
-        blue_pos = self.static_states["Cuboid 2 (Blue)"]['pos']
-        tr_blue = pg.Transform3D()
-        tr_blue.translate(*blue_pos)
-        tr_blue.rotate(blue_rot_z, 0, 0, 1)
-        tr_blue.rotate(90, 0, 1, 0)
-        tr_blue.rotate(90, 0, 0, 1)
-        blue_obj.setTransform(tr_blue)
-
-
-        # # --- LASER PHYSICS ---
-        # hit_point = np.array(red_pos) 
-        # incident = hit_point - self.laser_source
-        # incident_dir = incident / np.linalg.norm(incident)
-
-        # local_normal = np.array([0, 0, 1, 1]) 
-        # matrix_4x4 = tr_red.matrix()
-        # world_normal_4d = matrix_4x4 @ local_normal 
-        # world_normal = world_normal_4d[:3] 
-        # world_normal = world_normal / np.linalg.norm(world_normal)
-
-        # dot_prod = np.dot(incident_dir, world_normal)
-        # reflection_dir = incident_dir - 2 * dot_prod * world_normal
-        # reflection_end = hit_point + (reflection_dir * 100)
+        # --- 4. RAY TRACING PHYSICS (Double Bounce) ---
         
-        # pts = np.array([self.laser_source, hit_point, reflection_end])
-        # self.laser_plot.setData(pos=pts)
+        # --- BOUNCE 1: Source -> Blue Mirror ---
+        p1 = np.array(blue_pos) # Hit point 1 (0,0,0)
+        incident_1 = p1 - self.laser_source
+        dir_1 = incident_1 / np.linalg.norm(incident_1)
+        
+        # Normal 1
+        m1 = tr_red.matrix()
+        # Local normal of a standing plate is usually Y or Z depending on visual rotation
+        # Based on visual fix (rotate 90 X), local normal (0,0,1) becomes (0,-1,0) world-ish
+        # Let's trust the matrix to transform (0,0,1)
+        n1 = (m1 @ np.array([0, 0, 1, 1]))[:3]
+        n1 = n1 / np.linalg.norm(n1)
+        
+        # Reflect 1
+        r1 = dir_1 - 2 * np.dot(dir_1, n1) * n1
+        
+        # --- BOUNCE 2: Red Mirror -> Blue Mirror ---
+        # We need to find where Ray 1 hits the Blue Mirror Plane (at Y=20)
+        # Ray Equation: Point = p1 + t * r1
+        # We know Target Y = 20. So: 20 = p1_y + t * r1_y  => t = (20 - p1_y) / r1_y
+        
+        if abs(r1[1]) < 0.001: r1[1] = 0.001 # Prevent div/0
+        t2 = (blue_pos[1] - p1[1]) / r1[1]
+        
+        p2 = p1 + r1 * t2 # This is the exact hit point on Mirror 2
+        
+        # Direction 2 (Incident for mirror 2 is just r1)
+        dir_2 = r1 
+        
+        # Normal 2
+        m2 = tr_blue.matrix()
+        n2 = (m2 @ np.array([0, 0, 1, 1]))[:3]
+        n2 = n2 / np.linalg.norm(n2)
+        
+        # Reflect 2
+        r2 = dir_2 - 2 * np.dot(dir_2, n2) * n2
+        
+        # --- HIT 3: Blue Mirror -> Screen (at Z=50) ---
+        # We know Target Z = 50. So: t = (50 - p2_z) / r2_z
+        
+        if abs(r2[2]) < 0.001: r2[2] = 0.001
+        t3 = (50 - p2[2]) / r2[2]
+        
+        p3 = p2 + r2 * t3 # Hit point on screen
+        
+        # --- DRAW THE FULL PATH ---
+        pts = np.array([self.laser_source, p1, p2, p3])
+        self.laser_plot.setData(pos=pts)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
