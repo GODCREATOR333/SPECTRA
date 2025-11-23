@@ -40,17 +40,25 @@ def calculate_reflection(incident_vec, normal_vec):
 def intersect_line_plane(ray_origin, ray_dir, plane_point, plane_normal):
     """
     Calculates where a line hits a plane.
-    Returns the distance 't'.
+    
+    Returns:
+        hit_point (np.array): The XYZ coordinates of the hit.
+        t (float): The distance from origin to hit.
     """
     # denom = dot(dir, normal)
     denom = np.dot(ray_dir, plane_normal)
     
     # Avoid divide by zero (parallel lines)
     if abs(denom) < 1e-6:
-        return float('inf') 
+        # Return current position and 0 distance (Miss)
+        return ray_origin, 0.0 
         
     # t = dot(plane_point - origin, normal) / denom
     vector_to_plane = plane_point - ray_origin
     t = np.dot(vector_to_plane, plane_normal) / denom
     
-    return t
+    # Calculate the actual point in 3D space
+    hit_point = ray_origin + (ray_dir * t)
+    
+    # CRITICAL: Return BOTH values as a tuple
+    return hit_point, t

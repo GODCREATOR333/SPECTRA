@@ -11,6 +11,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from Scanner_Sim_py.visualization.viewer import MyView
 from Scanner_Sim_py.visualization import geometry
 from Scanner_Sim_py.core import kinematics
+from Scanner_Sim_py.core import physics
 
 # --- Main Application Window ---
 class MainWindow(QtWidgets.QWidget):
@@ -27,14 +28,14 @@ class MainWindow(QtWidgets.QWidget):
             "Cuboid 1 (Red)": {
                 'pos': [0, 20, 0], # Where is the joint located on the board?
                 'rest_rot_x': 45, # The "Home" position (Offset)
-                'range': 15  # Physical Hard Stop (+/- 15 degrees)
+                'range': 5  # Physical Hard Stop (+/- 15 degrees)
             },
 
             ## BLUE MIRROR (First Hit): Located at Origin (0,0,0)
             "Cuboid 2 (Blue)": {
                 'pos': [0, 0, 0],
-                'rest_rot_z': 45,
-                'range': 15
+                'rest_rot_z': -45,
+                'range': 5
             }
         }
         
@@ -43,10 +44,12 @@ class MainWindow(QtWidgets.QWidget):
         # --- B. SIMULATION STATE (Dynamic Variables) ---
         #This represents the Variables (the things changing every millisecond).
         self.animation_state = {
-            "Cuboid 1 (Red)": {'current_angle': 45, # The actual value q(t)
+            "Cuboid 1 (Red)": {'current_angle': 0, # The actual value q(t)
                                 'direction': 1, # Velocity vector (sign)
                                 'step': 1}, # Velocity magnitude (speed)
-                "Cuboid 2 (Blue)": {'current_angle': 45, 'direction': 1, 'step': 1}
+                "Cuboid 2 (Blue)": {'current_angle': 0,
+                                    'direction': 1,
+                                    'step': 1}
         }
         
 
@@ -90,15 +93,11 @@ class MainWindow(QtWidgets.QWidget):
         self.view.addItem(gy)
 
         # Z-Plane Grid (Floor)
-        gz = gl.GLGridItem()
-        gz.setSize(x=100, y=100)
-        gz.setSpacing(x=10, y=10)
-        gz.translate(0, 0, -50)
-        self.view.addItem(gz)
-
-        # WORLD FRAME {W} (Fixed at 0,0,0)
-        # (Note: You had add_world_frame_visuals() call here in previous versions, 
-        # but in your last pasted code it wasn't defined, so I am sticking to your manual axes below)
+        # gz = gl.GLGridItem()
+        # gz.setSize(x=100, y=100)
+        # gz.setSpacing(x=10, y=10)
+        # gz.translate(0, 0, -50)
+        # self.view.addItem(gz)
 
         """Adds the axes and cuboids to the 3D view."""
         axis_length = 60.0
@@ -156,7 +155,7 @@ class MainWindow(QtWidgets.QWidget):
         self.view.addItem(cuboid2)
 
 
-        # 1. Laser Line (White)
+        # Laser Line 
         self.laser_plot = GLLinePlotItem(pos=np.array([[0,0,0], [0,0,0]]), color=(1, 0, 1, 1), width=3, antialias=True)
         self.view.addItem(self.laser_plot)
 
@@ -165,11 +164,19 @@ class MainWindow(QtWidgets.QWidget):
 
         # 3. The Screen at Z=50 (A Green Grid)
         self.screen_grid = gl.GLGridItem()
-        self.screen_grid.setSize(x=50, y=50)
+        self.screen_grid.setSize(x=70, y=70)
         self.screen_grid.setSpacing(x=3, y=3)
         # Rotate to face the beam (Standard grid is on XY plane, we assume screen is flat on XY at Z=50)
         self.screen_grid.translate(0, 20, 50) 
         self.view.addItem(self.screen_grid)
+
+        # --- NEW: TRACE PLOT ---
+        # A green line that remembers where the laser hit
+        self.trace_plot = GLLinePlotItem(pos=np.array([[0,0,0]]), color=(0, 1, 0, 1), width=2, antialias=True)
+        self.view.addItem(self.trace_plot)
+        
+        # List to store history
+        self.trace_points = []
 
     def _create_controls(self):
         """Creates the simplified control panel with an animation button and angle displays."""
@@ -206,138 +213,124 @@ class MainWindow(QtWidgets.QWidget):
             self.timer.stop()
             self.animation_button.setText("Start Animation")
         else:
-            self.timer.start(50) # Update every 50 ms
+            self.timer.start(10) # Update every 50 ms
             self.animation_button.setText("Stop Animation")
 
     def _animate_step(self):
-        """Calculates the new angle for both objects in each animation frame."""
-        # Animate Red Cuboid
-        red_static = self.static_states["Cuboid 1 (Red)"]
-        red_anim = self.animation_state["Cuboid 1 (Red)"]
+        """Physics Time Step."""
+        # Update Red Mirror
+        r_st = self.static_states["Cuboid 1 (Red)"]
+        r_an = self.animation_state["Cuboid 1 (Red)"]
+        
+        r_an['current_angle'] += r_an['step'] * r_an['direction']
+        
+        # If we swing past +/- 15 degrees, flip direction
+        if abs(r_an['current_angle']) >= r_st['range']:
+            r_an['direction'] *= -1
 
-        # Integration: New_Pos = Old_Pos + Velocity * dt
-        # Collision Detection / Hard Stops
-        # Checks if current_angle exceeds the limits defined in static_states
-        red_anim['current_angle'] += red_anim['step'] * red_anim['direction']
-        if not (red_static['rest_rot_x'] - red_static['range'] <= red_anim['current_angle'] <= red_static['rest_rot_x'] + red_static['range']):
-            red_anim['direction'] *= -1
-
-        # Animate Blue Cuboid
-        blue_static = self.static_states["Cuboid 2 (Blue)"]
-        blue_anim = self.animation_state["Cuboid 2 (Blue)"]
-        blue_anim['current_angle'] += blue_anim['step'] * blue_anim['direction']
-        if not (blue_static['rest_rot_z'] - blue_static['range'] <= blue_anim['current_angle'] <= blue_static['rest_rot_z'] + blue_static['range']):
-            blue_anim['direction'] *= -1
+        # Update Blue Mirror
+        b_st = self.static_states["Cuboid 2 (Blue)"]
+        b_an = self.animation_state["Cuboid 2 (Blue)"]
+        
+        b_an['current_angle'] += b_an['step'] * b_an['direction']
+        
+        if abs(b_an['current_angle']) >= b_st['range']:
+            b_an['direction'] *= -1
             
         self.update_transforms()
 
     def update_transforms(self):
-        """Applies the current transformation to both objects and updates labels."""
-        # --- Get current angles ---
-        red_rot_x = self.animation_state["Cuboid 1 (Red)"]['current_angle']
-        blue_rot_z = self.animation_state["Cuboid 2 (Blue)"]['current_angle']
+        # 1. Get Angles
+        red_current = self.animation_state["Cuboid 1 (Red)"]['current_angle']
+        blue_current = self.animation_state["Cuboid 2 (Blue)"]['current_angle']
+        
+        self.red_angle_label.setText(f"Red: {red_current:.1f}°")
+        self.blue_angle_label.setText(f"Blue: {blue_current:.1f}°")
 
-        # Update label text ---
-        self.red_angle_label.setText(f"Red (X-Rot): {red_rot_x:.1f}°")
-        self.blue_angle_label.setText(f"Blue (Z-Rot): {blue_rot_z:.1f}°")
+        # =========================================================
+        # 2. UPDATE BLUE MIRROR (Origin)
+        # =========================================================
+        b_pos = self.static_states["Cuboid 2 (Blue)"]['pos']
+        b_rest = self.static_states["Cuboid 2 (Blue)"]['rest_rot_z']
+        
+        # Physics: Translate -> Rotate Z (Rest + Current)
+        m_blue_phys = kinematics.get_model_matrix(b_pos, b_rest + blue_current, [0,0,1])
+        # Visual: Rotate 90 X to make the plate stand up
+        m_blue_vis = kinematics.get_model_matrix([0,0,0], 90, [1,0,0])
+        
+        matrix_blue = m_blue_phys @ m_blue_vis
+        self.objects["Cuboid 2 (Blue)"].setTransform(pg.Transform3D(*matrix_blue.flatten()))
 
-        # """The Physics Logic:
-        # Notice the order: Translate first, then Rotate.
-        # We move the generic cube from
-        # (0,0,0)(0,0,0)
-        # to its mounting point
-        # (0,20,0)(0,20,0)
-        # Now the coordinate system is sitting at
-        # (0,20,0)(0,20,0)
-        # We rotate it around that new point.
-        # If you swapped these lines (Rotate then Translate), the cube would rotate around the World Origin
-        # (0,0,0)(0,0,0)
-        # down below, swinging in a huge arc."""
+        # =========================================================
+        # 3. UPDATE RED MIRROR (Y=20)
+        # =========================================================
+        r_pos = self.static_states["Cuboid 1 (Red)"]['pos']
+        r_rest = self.static_states["Cuboid 1 (Red)"]['rest_rot_x']
+        
+        # Physics: Translate -> Rotate X (Rest + Current)
+        # Red mirror naturally tilts correctly with X rotation
+        matrix_red = kinematics.get_model_matrix(r_pos, r_rest + red_current, [1,0,0])
+        
+        self.objects["Cuboid 1 (Red)"].setTransform(pg.Transform3D(*matrix_red.flatten()))
 
-        # --- Update Blue Cuboid 3D Object ---
-        blue_obj = self.objects["Cuboid 2 (Blue)"]
-        blue_pos = self.static_states["Cuboid 2 (Blue)"]['pos']
-        tr_blue = pg.Transform3D()
-        tr_blue.translate(*blue_pos)
-        tr_blue.rotate(blue_rot_z, 0, 0, 1)
-        tr_blue.rotate(90, 0, 1, 0)
-        tr_blue.rotate(90, 0, 0, 1)
-        blue_obj.setTransform(tr_blue)
+        # =========================================================
+        # 4. RAY TRACING
+        # =========================================================
+        
+        # --- Path 1: Source -> Blue ---
+        p1 = np.array(b_pos) 
+        dir_1 = physics.normalize(p1 - self.laser_source)
+        
+        # Normal 1 (Blue)
+        # Transform local Z [0,0,1] using the Full Blue Matrix
+        n1 = kinematics.apply_transform_to_vector(matrix_blue, [0, 0, 1])
+        n1 = physics.normalize(n1)
+        r1 = physics.calculate_reflection(dir_1, n1)
 
-        # --- Update Red Cuboid 3D Object ---
-        red_obj = self.objects["Cuboid 1 (Red)"]
+        # --- Path 2: Blue -> Red ---
+        plane_point_red = np.array(r_pos)
+        # Red mirror is a wall facing -Y
+        plane_normal_red = np.array([0, -1, 0]) 
+        
+        p2, t2 = physics.intersect_line_plane(p1, r1, plane_point_red, plane_normal_red)
+        
+        # Miss Checks
+        if t2 <= 0: # Beam went backward or parallel
+             self.laser_plot.setData(pos=np.array([self.laser_source, p1, p1 + r1*20]))
+             return
+        
+        if abs(p2[0]) > 10.0: # Width Check (Mirror Size 20)
+            self.laser_plot.setData(pos=np.array([self.laser_source, p1, p2, p2 + r1*20]))
+            return
 
-        # 1. Get the Translation Vector from the static dictionary
-        # red_pos is [0, 20, 0]
-        red_pos = self.static_states["Cuboid 1 (Red)"]['pos']
+        # --- Path 3: Red -> Screen ---
+        # Normal 2 (Red)
+        n2 = kinematics.apply_transform_to_vector(matrix_red, [0, 0, 1])
+        n2 = physics.normalize(n2)
+        r2 = physics.calculate_reflection(r1, n2)
         
-        # 2. Create an Identity Matrix (4x4)
-        tr_red = pg.Transform3D()
+        # Screen Intersection (Z=50)
+        plane_point_screen = np.array([0, 0, 50])
+        plane_normal_screen = np.array([0, 0, -1])
         
-        # 3. Apply Translation (Displacement)
-        # Matrix becomes: [ 1 0 0 0 ]
-        #                 [ 0 1 0 20]  <-- The 20 moves it up Y-axis
-        #                 ...
-        
-        tr_red.translate(*red_pos)
-        
-        # 4. Apply Rotation (The Dynamic Part)
-        # red_rot_x is the animating angle (e.g., 45.5 degrees)
-        # (1, 0, 0) is the Axis of Rotation (X-axis)
-        tr_red.rotate(red_rot_x, 1, 0, 0)
+        p3, t3 = physics.intersect_line_plane(p2, r2, plane_point_screen, plane_normal_screen)
 
-        # 5. Send Matrix to GPU
-        red_obj.setTransform(tr_red)
+        if t3 <= 0: p3 = p2 + r2 * 20
+        
+        # --- DRAW LASER ---
+        self.laser_plot.setData(pos=np.array([self.laser_source, p1, p2, p3]))
 
-
-
-        # --- 4. RAY TRACING PHYSICS (Double Bounce) ---
-        
-        # --- BOUNCE 1: Source -> Blue Mirror ---
-        p1 = np.array(blue_pos) # Hit point 1 (0,0,0)
-        incident_1 = p1 - self.laser_source
-        dir_1 = incident_1 / np.linalg.norm(incident_1)
-        
-        # Normal 1
-        m1 = tr_red.matrix()
-        # Local normal of a standing plate is usually Y or Z depending on visual rotation
-        # Based on visual fix (rotate 90 X), local normal (0,0,1) becomes (0,-1,0) world-ish
-        # Let's trust the matrix to transform (0,0,1)
-        n1 = (m1 @ np.array([0, 0, 1, 1]))[:3]
-        n1 = n1 / np.linalg.norm(n1)
-        
-        # Reflect 1
-        r1 = dir_1 - 2 * np.dot(dir_1, n1) * n1
-        
-        # --- BOUNCE 2: Red Mirror -> Blue Mirror ---
-        # We need to find where Ray 1 hits the Blue Mirror Plane (at Y=20)
-        # Ray Equation: Point = p1 + t * r1
-        # We know Target Y = 20. So: 20 = p1_y + t * r1_y  => t = (20 - p1_y) / r1_y
-        
-        if abs(r1[1]) < 0.001: r1[1] = 0.001 # Prevent div/0
-        t2 = (blue_pos[1] - p1[1]) / r1[1]
-        
-        p2 = p1 + r1 * t2 # This is the exact hit point on Mirror 2
-        
-        # Direction 2 (Incident for mirror 2 is just r1)
-        dir_2 = r1 
-        
-        # Normal 2
-        m2 = tr_blue.matrix()
-        n2 = (m2 @ np.array([0, 0, 1, 1]))[:3]
-        n2 = n2 / np.linalg.norm(n2)
-        
-        # Reflect 2
-        r2 = dir_2 - 2 * np.dot(dir_2, n2) * n2
-        
-        # --- HIT 3: Blue Mirror -> Screen (at Z=50) ---
-        # We know Target Z = 50. So: t = (50 - p2_z) / r2_z
-        
-        if abs(r2[2]) < 0.001: r2[2] = 0.001
-        t3 = (50 - p2[2]) / r2[2]
-        
-        p3 = p2 + r2 * t3 # Hit point on screen
-        
-        # --- DRAW THE FULL PATH ---
-        pts = np.array([self.laser_source, p1, p2, p3])
-        self.laser_plot.setData(pos=pts)
+        # --- NEW: DRAW TRACE ON SCREEN ---
+        # Only add point if we actually hit the screen area (Z approx 50)
+        if t3 > 0:
+            # Store the point
+            self.trace_points.append(p3)
+            
+            # Optimization: Keep only last 500 points so memory doesn't explode
+            if len(self.trace_points) > 500:
+                self.trace_points.pop(0)
+            
+            # Update the visual line
+            if len(self.trace_points) > 1:
+                pts_array = np.array(self.trace_points)
+                self.trace_plot.setData(pos=pts_array)
