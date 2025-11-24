@@ -7,6 +7,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
 
+# Custom View for Zoom/PAN control 
 class MyView(gl.GLViewWidget):
     def __init__(self): #Construtor
         super().__init__() # Inheritance: Augment the actualy gl.GLViewWidget with my extra code without overwriting
@@ -83,13 +84,16 @@ class MyView(gl.GLViewWidget):
         super().keyPressEvent(ev)
 
 
-# ----- Helper Functions -----
-def axis_line(start, end, color):
+### ----- Helper Functions ----- ###
+
+# --- Math Helper: Draw Axis Lines ---
+def axis_line(start, end, color):  #Draw each co-ordiante axis line
 
     # Creates a simple line to visualize X, Y, Z axes
     pts = np.array([start, end])
     return gl.GLLinePlotItem(pos=pts, color=color, width=3, antialias=True)
 
+# --- Geometry Helper: Create the mirror geometry ---
 def create_cuboid(length, breadth, height):
     """Creates a MeshData object for a cuboid centered at the origin."""
     # 1. Calculate half-dimensions to center the cube at (0,0,0)
@@ -113,6 +117,7 @@ def create_cuboid(length, breadth, height):
     # Returns a data structure containing the geometry
     return gl.MeshData(vertexes=verts, faces=faces)
 
+# --- Math Helper: Create Axis Ticks ---
 def create_axis_ticks(axis, length, spacing=10.0, tick_size=2.0):
     # Draws small tick marks along the axis
     ticks = []
@@ -143,6 +148,58 @@ def create_axis_ticks(axis, length, spacing=10.0, tick_size=2.0):
         numbers.append(label)
     return numbers
 
+def get_model_matrix(position, rotation_degrees, rotation_axis):
+    """
+    position: [x, y, z]
+    rotation_degrees: float angle
+    rotation_axis: [1,0,0] for X, [0,1,0] for Y, etc.
+    Returns: 4x4 Numpy Matrix
+    """
+    # 1. Identity Matrix
+    M = np.eye(4)
+    
+    # 2. Rotation (Rodrigues' Rotation Formula logic or simplified)
+    # Since we rotate around primary axes (X, Y, or Z), we can hardcode for speed.
+    # C++ Implementation would use a library like GLM or Eigen here.
+    rad = np.radians(rotation_degrees)
+    c = np.cos(rad)
+    s = np.sin(rad)
+    
+    R = np.eye(4)
+    if rotation_axis == [1, 0, 0]: # Rotate X
+        R[1,1] = c; R[1,2] = -s
+        R[2,1] = s; R[2,2] = c
+    elif rotation_axis == [0, 1, 0]: # Rotate Y
+        R[0,0] = c; R[0,2] = s
+        R[2,0] = -s; R[2,2] = c
+    elif rotation_axis == [0, 0, 1]: # Rotate Z
+        R[0,0] = c; R[0,1] = -s
+        R[1,0] = s; R[1,1] = c
+        
+    # 3. Translation (Put position in the last column)
+    T = np.eye(4)
+    T[:3, 3] = position
+    
+    # 4. Combine: Translate * Rotate (Standard Robotics Order)
+    # M = T @ R
+    return T @ R
+
+
+def apply_transform_to_point(matrix, point):
+    """
+    matrix: 4x4 numpy array
+    point: [x, y, z]
+    """
+    # Convert to Homogeneous [x, y, z, 1]
+    p4 = np.array([point[0], point[1], point[2], 1.0])
+    
+    # Multiply
+    result = matrix @ p4
+    
+    # Return [x, y, z]
+    return result[:3]
+
+### ----- Helper Functions ----- ###
 
 
 # --- Main Application Window ---
@@ -155,12 +212,15 @@ class MainWindow(QtWidgets.QWidget):
         # --- Data and State ---
 
         # This dictionary acts like a "datasheet" for the physical parts.
+        # --- A. DATASHEET (Static Configuration) ---
         self.static_states = {
             "Cuboid 1 (Red)": {
                 'pos': [0, 20, 0], # Where is the joint located on the board?
                 'rest_rot_x': 45, # The "Home" position (Offset)
                 'range': 15  # Physical Hard Stop (+/- 15 degrees)
             },
+
+            ## BLUE MIRROR (First Hit): Located at Origin (0,0,0)
             "Cuboid 2 (Blue)": {
                 'pos': [0, 0, 0],
                 'rest_rot_z': 45,
@@ -170,6 +230,7 @@ class MainWindow(QtWidgets.QWidget):
         
         self.objects = {}
         
+        # --- B. SIMULATION STATE (Dynamic Variables) ---
         #This represents the Variables (the things changing every millisecond).
         self.animation_state = {
             "Cuboid 1 (Red)": {'current_angle': 45, # The actual value q(t)
@@ -178,6 +239,8 @@ class MainWindow(QtWidgets.QWidget):
                 "Cuboid 2 (Blue)": {'current_angle': 45, 'direction': 1, 'step': 1}
         }
         
+
+        # --- C. SETUP UI ---
         # --- Timer for Animation ---
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._animate_step)
@@ -186,7 +249,7 @@ class MainWindow(QtWidgets.QWidget):
         self.main_layout = QtWidgets.QHBoxLayout()
         self.setLayout(self.main_layout)
         self.view = MyView()
-        self.setup_scene()
+        self.setup_scene() # <--- CALLS THE FUNCTION BELOW
         self.controls_widget = self._create_controls()
         
         self.main_layout.addWidget(self.controls_widget)
@@ -196,11 +259,39 @@ class MainWindow(QtWidgets.QWidget):
         self.update_transforms()
 
     def setup_scene(self):
+        """Initializes the 3D world: Grids, Frames, Mirrors, Laser."""
+
+        # --- 0. Background Grids (The "World Frame") ---
+
+        # X-Plane Grid
+        gx = gl.GLGridItem()
+        gx.setSize(x=100, y=100) # Adjust Size
+        gx.setSpacing(x=10, y=10)
+        gx.rotate(90, 0, 1, 0)
+        gx.translate(-50, 0, 0) # Adjust Position
+        self.view.addItem(gx)
+
+        # Y-Plane Grid
+        gy = gl.GLGridItem()
+        gy.setSize(x=100, y=100)
+        gy.setSpacing(x=10, y=10)
+        gy.rotate(90, 1, 0, 0)
+        gy.translate(0, -50, 0)
+        self.view.addItem(gy)
+
+        # Z-Plane Grid (Floor)
+        gz = gl.GLGridItem()
+        gz.setSize(x=100, y=100)
+        gz.setSpacing(x=10, y=10)
+        gz.translate(0, 0, -50)
+        self.view.addItem(gz)
+
+
         """Adds the axes and cuboids to the 3D view."""
         axis_length = 60.0
         tick_spacing = 10.0 # Changed to 10mm so numbers aren't too crowded
         
-        # 1. Main Axis Lines (RGB)
+        # 1. Scanner Axis Lines (RGB)
         self.view.addItem(axis_line([0, 0, 0], [axis_length, 0, 0], (1, 0, 0, 1))) # X - Red
         self.view.addItem(axis_line([0, 0, 0], [0, axis_length, 0], (0, 1, 0, 1))) # Y - Green
         self.view.addItem(axis_line([0, 0, 0], [0, 0, axis_length], (0, 0, 1, 1))) # Z - Blue
@@ -249,8 +340,8 @@ class MainWindow(QtWidgets.QWidget):
         self.view.addItem(cuboid2)
 
 
-        # 1. Laser Line (Yellow)
-        self.laser_plot = GLLinePlotItem(pos=np.array([[0,0,0], [0,0,0]]), color=(1, 1, 0, 1), width=3, antialias=True)
+        # 1. Laser Line (White)
+        self.laser_plot = GLLinePlotItem(pos=np.array([[0,0,0], [0,0,0]]), color=(1, 0, 1, 1), width=3, antialias=True)
         self.view.addItem(self.laser_plot)
 
         # 2. Source (Shooting from Left -X towards Origin)
@@ -258,8 +349,8 @@ class MainWindow(QtWidgets.QWidget):
 
         # 3. The Screen at Z=50 (A Green Grid)
         self.screen_grid = gl.GLGridItem()
-        self.screen_grid.setSize(x=40, y=40)
-        self.screen_grid.setSpacing(x=5, y=5)
+        self.screen_grid.setSize(x=50, y=50)
+        self.screen_grid.setSpacing(x=3, y=3)
         # Rotate to face the beam (Standard grid is on XY plane, we assume screen is flat on XY at Z=50)
         self.screen_grid.translate(0, 20, 50) 
         self.view.addItem(self.screen_grid)
@@ -286,7 +377,7 @@ class MainWindow(QtWidgets.QWidget):
         control_layout.addSpacing(20)
 
         # Animation Button
-        self.animation_button = QtWidgets.QPushButton("Start Animation")
+        self.animation_button = QtWidgets.QPushButton("Start Plotting")
         self.animation_button.clicked.connect(self._toggle_animation)
         control_layout.addWidget(self.animation_button)
         

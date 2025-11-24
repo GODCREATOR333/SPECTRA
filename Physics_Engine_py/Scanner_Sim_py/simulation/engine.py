@@ -93,11 +93,11 @@ class MainWindow(QtWidgets.QWidget):
         self.view.addItem(gy)
 
         # Z-Plane Grid (Floor)
-        # gz = gl.GLGridItem()
-        # gz.setSize(x=100, y=100)
-        # gz.setSpacing(x=10, y=10)
-        # gz.translate(0, 0, -50)
-        # self.view.addItem(gz)
+        gz = gl.GLGridItem()
+        gz.setSize(x=100, y=100)
+        gz.setSpacing(x=10, y=10)
+        gz.translate(0, 0, -50)
+        self.view.addItem(gz)
 
         """Adds the axes and cuboids to the 3D view."""
         axis_length = 60.0
@@ -211,7 +211,7 @@ class MainWindow(QtWidgets.QWidget):
         """Starts or stops the animation timer."""
         if self.timer.isActive():
             self.timer.stop()
-            self.animation_button.setText("Start Animation")
+            self.animation_button.setText("Start Plotting")
         else:
             self.timer.start(10) # Update every 50 ms
             self.animation_button.setText("Stop Animation")
