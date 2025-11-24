@@ -12,6 +12,7 @@ from Scanner_Sim_py.visualization.viewer import MyView
 from Scanner_Sim_py.visualization import geometry
 from Scanner_Sim_py.core import kinematics
 from Scanner_Sim_py.core import physics
+from Scanner_Sim_py.core.plant_model import GalvoModel
 
 # --- Main Application Window ---
 class MainWindow(QtWidgets.QWidget):
@@ -24,33 +25,12 @@ class MainWindow(QtWidgets.QWidget):
 
         # This dictionary acts like a "datasheet" for the physical parts.
         # --- A. DATASHEET (Static Configuration) ---
-        self.static_states = {
-            "Cuboid 1 (Red)": {
-                'pos': [0, 20, 0], # Where is the joint located on the board?
-                'rest_rot_x': 45, # The "Home" position (Offset)
-                'range': 5  # Physical Hard Stop (+/- 15 degrees)
-            },
-
-            ## BLUE MIRROR (First Hit): Located at Origin (0,0,0)
-            "Cuboid 2 (Blue)": {
-                'pos': [0, 0, 0],
-                'rest_rot_z': -45,
-                'range': 5
-            }
-        }
-        
-        self.objects = {}
-        
         # --- B. SIMULATION STATE (Dynamic Variables) ---
         #This represents the Variables (the things changing every millisecond).
-        self.animation_state = {
-            "Cuboid 1 (Red)": {'current_angle': 0, # The actual value q(t)
-                                'direction': 1, # Velocity vector (sign)
-                                'step': 1}, # Velocity magnitude (speed)
-                "Cuboid 2 (Blue)": {'current_angle': 0,
-                                    'direction': 1,
-                                    'step': 1}
-        }
+        
+        self.galvo_system = GalvoModel()
+        
+        self.objects = {}
         
 
         # --- C. SETUP UI ---
@@ -213,36 +193,34 @@ class MainWindow(QtWidgets.QWidget):
             self.timer.stop()
             self.animation_button.setText("Start Plotting")
         else:
-            self.timer.start(10) # Update every 50 ms
+            self.timer.start(10) # Update every 10 ms
             self.animation_button.setText("Stop Animation")
 
     def _animate_step(self):
         """Physics Time Step."""
-        # Update Red Mirror
-        r_st = self.static_states["Cuboid 1 (Red)"]
-        r_an = self.animation_state["Cuboid 1 (Red)"]
         
-        r_an['current_angle'] += r_an['step'] * r_an['direction']
+        # 1. Create a Sine Wave Signal to test the physics
+        # We use current time to drive a sine wave
+        import time
+        t = time.time()
         
-        # If we swing past +/- 15 degrees, flip direction
-        if abs(r_an['current_angle']) >= r_st['range']:
-            r_an['direction'] *= -1
-
-        # Update Blue Mirror
-        b_st = self.static_states["Cuboid 2 (Blue)"]
-        b_an = self.animation_state["Cuboid 2 (Blue)"]
+        target_x = 10.0 * np.sin(t * 2) # Swing +/- 10 degrees, 2 rad/sec
+        target_y = 10.0 * np.cos(t * 2)
         
-        b_an['current_angle'] += b_an['step'] * b_an['direction']
+        # 2. Send signal to the Plant
+        self.galvo_system.set_target(target_x, target_y)
         
-        if abs(b_an['current_angle']) >= b_st['range']:
-            b_an['direction'] *= -1
-            
+        # 3. Update Physics
+        self.galvo_system.update()
+        
+        # 4. Update Visuals
         self.update_transforms()
 
+        
     def update_transforms(self):
         # 1. Get Angles
-        red_current = self.animation_state["Cuboid 1 (Red)"]['current_angle']
-        blue_current = self.animation_state["Cuboid 2 (Blue)"]['current_angle']
+        red_current = self.galvo_system.state["Cuboid 1 (Red)"]['current_angle']
+        blue_current = self.galvo_system.state["Cuboid 2 (Blue)"]['current_angle']
         
         self.red_angle_label.setText(f"Red: {red_current:.1f}°")
         self.blue_angle_label.setText(f"Blue: {blue_current:.1f}°")
@@ -250,8 +228,8 @@ class MainWindow(QtWidgets.QWidget):
         # =========================================================
         # 2. UPDATE BLUE MIRROR (Origin)
         # =========================================================
-        b_pos = self.static_states["Cuboid 2 (Blue)"]['pos']
-        b_rest = self.static_states["Cuboid 2 (Blue)"]['rest_rot_z']
+        b_pos = self.galvo_system.static_states["Cuboid 2 (Blue)"]['pos']
+        b_rest = self.galvo_system.static_states["Cuboid 2 (Blue)"]['rest_rot_z']
         
         # Physics: Translate -> Rotate Z (Rest + Current)
         m_blue_phys = kinematics.get_model_matrix(b_pos, b_rest + blue_current, [0,0,1])
@@ -264,8 +242,8 @@ class MainWindow(QtWidgets.QWidget):
         # =========================================================
         # 3. UPDATE RED MIRROR (Y=20)
         # =========================================================
-        r_pos = self.static_states["Cuboid 1 (Red)"]['pos']
-        r_rest = self.static_states["Cuboid 1 (Red)"]['rest_rot_x']
+        r_pos = self.galvo_system.static_states["Cuboid 1 (Red)"]['pos']
+        r_rest = self.galvo_system.static_states["Cuboid 1 (Red)"]['rest_rot_x']
         
         # Physics: Translate -> Rotate X (Rest + Current)
         # Red mirror naturally tilts correctly with X rotation
