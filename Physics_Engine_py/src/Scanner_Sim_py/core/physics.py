@@ -89,27 +89,26 @@ def trace_laser_path(angle_x_deg, angle_y_deg, system_config):
         path_points (list): List of points [source, blue_hit, red_hit, screen_hit]
     """
     
-    # 1. Setup Data
+   # 1. Setup Data
     source_pos = np.array(system_config["source_pos"])
     
     # --- BLUE MIRROR (First Hit) ---
     b_pos = np.array(system_config["blue_pos"])
     b_rest = system_config["blue_rest_angle"]
     
-    # Calculate Normal for Blue Mirror
-    # Rotate around Z axis (rest + current control)
-    # Note: We use the visuals helper, but pure math would be better. 
-    # For now, we reuse kinematics to match the visual exactly.
-    m_blue = kinematics.get_model_matrix(b_pos, b_rest + angle_y_deg, system_config["blue_rest_axis"])
-    n1 = kinematics.apply_transform_to_vector(m_blue, [0, 1, 0]) # Initial Normal of the plate face
-    # Wait, in your engine.py visuals, you rotated the plate 90 deg X to stand it up. 
-    # Let's assume the normal is [0, 1, 0] in local space if it's a flat plate, 
-    # or [0, 0, 1] if it was flat on ground.
-    # Looking at engine.py: m_blue_vis = Rotate(90, X). 
-    # If the mesh is flat on XY, rotating 90 X makes it face -Y or +Y.
-    # Let's stick to the vector logic used in engine.py:
-    # n1 = transform([0,0,1]) after applying blue_matrix
-    n1 = kinematics.apply_transform_to_vector(m_blue, [0, 0, 1]) # Local Z is normal
+    # MATRIX CONSTRUCTION (Must match engine.py visuals exactly!)
+    # A. The Motor Rotation (Z-Axis)
+    m_blue_motor = kinematics.get_model_matrix(b_pos, b_rest + angle_y_deg, system_config["blue_rest_axis"])
+    
+    # B. The Mounting Orientation (Stand it up 90 deg on X) <--- THIS WAS MISSING
+    m_blue_mount = kinematics.get_model_matrix([0,0,0], 90, [1,0,0])
+    
+    # Combine: Motor * Mount
+    m_blue_total = m_blue_motor @ m_blue_mount
+    
+    # Calculate Normal (Local Z [0,0,1] transformed by the full matrix)
+    n1 = kinematics.apply_transform_to_vector(m_blue_total, [0, 0, 1]) 
+    n1 = normalize(n1)
     
     # Trace Source -> Blue
     dir_1 = normalize(b_pos - source_pos)
@@ -119,26 +118,32 @@ def trace_laser_path(angle_x_deg, angle_y_deg, system_config):
     r_pos = np.array(system_config["red_pos"])
     
     # Intersect Ray 1 with Red Mirror Plane
-    # Red mirror is at [0, 20, 0]. In engine.py you assumed it faces -Y ([0, -1, 0])
+    # Red mirror is at Y=20. We assume it acts as a wall facing -Y.
     plane_normal_red = np.array([0, -1, 0]) 
     p2, t2 = intersect_line_plane(b_pos, r1, r_pos, plane_normal_red)
     
-    if t2 <= 0: return None, [] # Missed Red Mirror
+    # Miss Check 1
+    if t2 <= 0: 
+        return None, [] 
 
     # Calculate Normal for Red Mirror
+    # Red mirror doesn't have the extra 90-deg visual rotation in engine.py, so this is simple.
     r_rest = system_config["red_rest_angle"]
     m_red = kinematics.get_model_matrix(r_pos, r_rest + angle_x_deg, system_config["red_rest_axis"])
     n2 = kinematics.apply_transform_to_vector(m_red, [0, 0, 1])
+    n2 = normalize(n2)
     
     r2 = calculate_reflection(r1, n2) # Reflection Vector 2
     
     # --- SCREEN (Final Hit) ---
     screen_z = system_config["screen_z"]
     plane_point_screen = np.array([0, 0, screen_z])
-    plane_normal_screen = np.array([0, 0, -1]) # Facing back at origin
+    plane_normal_screen = np.array([0, 0, -1]) 
     
     p3, t3 = intersect_line_plane(p2, r2, plane_point_screen, plane_normal_screen)
     
-    if t3 <= 0: return None, [] # Missed Screen
+    # Miss Check 2
+    if t3 <= 0: 
+        return None, [] 
 
     return p3, [source_pos, b_pos, p2, p3]
