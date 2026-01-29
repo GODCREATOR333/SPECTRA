@@ -1,5 +1,3 @@
-# The MainWindow Class (The loop that connects Core + Vis)
-
 import sys
 import numpy as np
 import pyqtgraph as pg
@@ -7,308 +5,415 @@ import pyqtgraph.opengl as gl
 from pyqtgraph.opengl import GLMeshItem, GLTextItem, GLLinePlotItem
 from PyQt5 import QtGui, QtCore, QtWidgets
 
-# --- IMPORTS FROM YOUR NEW MODULES ---
+# --- MODULE IMPORTS ---
 from Scanner_Sim_py.visualization.viewer import MyView
 from Scanner_Sim_py.visualization import geometry
 from Scanner_Sim_py.core import kinematics
 from Scanner_Sim_py.core import physics
 from Scanner_Sim_py.core.plant_model import GalvoModel
 
-# --- Main Application Window ---
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Scanner Physics Engine")
-        self.setGeometry(100, 100, 1200, 800)
-
-        # --- Data and State ---
-
-        # This dictionary acts like a "datasheet" for the physical parts.
-        # --- A. DATASHEET (Static Configuration) ---
-        # --- B. SIMULATION STATE (Dynamic Variables) ---
-        #This represents the Variables (the things changing every millisecond).
+        self.setWindowTitle("Laser Scanning Physics Engine (HIL Simulation)")
         
+        # 1. Window Sizing
+        screen = QtWidgets.QApplication.primaryScreen().availableGeometry()
+        self.resize(min(1400, screen.width()), min(900, screen.height()))
+
+        # 2. Initialize System
         self.galvo_system = GalvoModel()
+        self.objects = {} # Stores 3D mesh items
         
-        self.objects = {}
-        
+        # State Flags
+        self.simulation_active = False
+        self.time_elapsed = 0.0
+        self.history_len = 500 # How many points to keep in plots
 
-        # --- C. SETUP UI ---
-        # --- Timer for Animation ---
+        # Data Buffers for Plotting
+        self.data_time = np.zeros(self.history_len)
+        self.data_target_x = np.zeros(self.history_len)
+        self.data_actual_x = np.zeros(self.history_len)
+        self.data_error_x = np.zeros(self.history_len)
+
+        # 3. UI Layout Setup
+        self.init_ui()
+
+        # 4. 3D Scene Setup
+        self.setup_scene()
+
+        # 5. Timer (The Heartbeat)
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self._animate_step)
+        self.timer.timeout.connect(self.simulation_step)
+        # 60 FPS target
+        self.timer.setInterval(16) 
 
-        # --- Layout & Widgets ---
-        self.main_layout = QtWidgets.QHBoxLayout()
-        self.setLayout(self.main_layout)
-        self.view = MyView()
-        self.setup_scene() # <--- CALLS THE FUNCTION BELOW
-        self.controls_widget = self._create_controls()
+    def init_ui(self):
+        """Builds the 3-pane layout similar to the Bio-Inspired Project."""
         
-        self.main_layout.addWidget(self.controls_widget)
-        self.main_layout.addWidget(self.view, 1)
+        # ============================
+        # OUTER SPLITTER (Left | Right)
+        # ============================
+        self.outer_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.outer_splitter.setHandleWidth(6)
+        
+        # ============================
+        # 1. SIDEBAR (Left)
+        # ============================
+        self.sidebar = QtWidgets.QWidget()
+        sidebar_layout = QtWidgets.QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(8, 8, 8, 8)
+        sidebar_layout.setSpacing(8)
 
-        # --- Finalize ---
-        self.update_transforms()
+        # A. Instructions / Legend
+        self.instructions = QtWidgets.QTextEdit()
+        self.instructions.setReadOnly(True)
+        self.instructions.setMaximumHeight(150)
+        self.instructions.setStyleSheet("background-color: #222; color: #EEE;")
+        self.instructions.setPlainText(
+            "=== LASER STEERING SIM ===\n"
+            "   [Left Click]     : Orbit View\n"
+            "   [Right Click]    : Pan View\n"
+            "   [Scroll]         : Zoom\n\n"
+            "=== LEGEND ===\n"
+            "   Red Box      : X-Mirror (Fast Axis)\n"
+            "   Blue Box     : Y-Mirror (Slow Axis)\n"
+            "   Magenta Line : Laser Beam\n"
+            "   Green Line   : Trace History\n"
+        )
+        sidebar_layout.addWidget(self.instructions)
+
+        # B. Parameter Scroll Area
+        param_scroll = QtWidgets.QScrollArea()
+        param_scroll.setWidgetResizable(True)
+        param_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        
+        param_container = QtWidgets.QWidget()
+        param_layout = QtWidgets.QVBoxLayout(param_container)
+
+        # --- Group 1: Signal Generator ---
+        sig_group = QtWidgets.QGroupBox("Input Signal (Target)")
+        sig_form = QtWidgets.QFormLayout(sig_group)
+        
+        self.freq_input = QtWidgets.QDoubleSpinBox()
+        self.freq_input.setRange(0.1, 50.0)
+        self.freq_input.setValue(1.0)
+        self.freq_input.setSuffix(" Hz")
+        
+        self.amp_input = QtWidgets.QDoubleSpinBox()
+        self.amp_input.setRange(0.0, 15.0)
+        self.amp_input.setValue(10.0)
+        self.amp_input.setSuffix(" deg")
+
+        sig_form.addRow("Frequency", self.freq_input)
+        sig_form.addRow("Amplitude", self.amp_input)
+        param_layout.addWidget(sig_group)
+
+        # --- Group 2: Plant Physics (The Hardware) ---
+        plant_group = QtWidgets.QGroupBox("Actuator Physics")
+        plant_form = QtWidgets.QFormLayout(plant_group)
+        
+        self.inertia_input = QtWidgets.QDoubleSpinBox()
+        self.inertia_input.setRange(0.1, 10.0)
+        self.inertia_input.setValue(0.5)
+        self.inertia_input.setSingleStep(0.1)
+
+        self.damping_input = QtWidgets.QDoubleSpinBox()
+        self.damping_input.setRange(0.0, 10.0)
+        self.damping_input.setValue(2.0)
+        
+        self.stiffness_input = QtWidgets.QDoubleSpinBox()
+        self.stiffness_input.setRange(0.0, 50.0)
+        self.stiffness_input.setValue(0.0)
+        
+        plant_form.addRow("Inertia (J)", self.inertia_input)
+        plant_form.addRow("Damping (b)", self.damping_input)
+        plant_form.addRow("Stiffness (k)", self.stiffness_input)
+        param_layout.addWidget(plant_group)
+
+        # Add stretch to push everything up
+        param_layout.addStretch()
+        param_scroll.setWidget(param_container)
+        sidebar_layout.addWidget(param_scroll)
+
+        # C. Console Log
+        log_group = QtWidgets.QGroupBox("System Log")
+        log_layout = QtWidgets.QVBoxLayout(log_group)
+        self.console = QtWidgets.QTextEdit()
+        self.console.setReadOnly(True)
+        self.console.setStyleSheet("background:#111; color:#0f0; font-family:monospace; font-size:9pt;")
+        self.console.setPlainText("--- SYSTEM READY ---")
+        log_layout.addWidget(self.console)
+        sidebar_layout.addWidget(log_group)
+
+        # D. Buttons
+        controls = QtWidgets.QHBoxLayout()
+        self.start_button = QtWidgets.QPushButton("START")
+        self.stop_button = QtWidgets.QPushButton("STOP")
+        self.stop_button.setEnabled(False)
+        
+        self.start_button.clicked.connect(self.start_simulation)
+        self.stop_button.clicked.connect(self.stop_simulation)
+        
+        controls.addWidget(self.start_button)
+        controls.addWidget(self.stop_button)
+        sidebar_layout.addLayout(controls)
+
+        self.outer_splitter.addWidget(self.sidebar)
+
+        # ============================
+        # 2. RIGHT SIDE (View + Plots)
+        # ============================
+        self.right_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+
+        # A. 3D View (Top)
+        self.view = MyView()
+        self.right_splitter.addWidget(self.view)
+
+        # B. Plots (Bottom)
+        bottom_plot_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        
+        # Plot 1: Tracking (Target vs Actual)
+        self.tracking_plot = pg.PlotWidget(title="X-Axis Tracking Response")
+        self.tracking_plot.showGrid(x=True, y=True)
+        self.tracking_plot.setLabel('left', 'Angle (deg)')
+        self.tracking_plot.addLegend()
+        self.curve_target = self.tracking_plot.plot(pen=pg.mkPen('y', width=2, style=QtCore.Qt.DashLine), name="Target")
+        self.curve_actual = self.tracking_plot.plot(pen=pg.mkPen('c', width=2), name="Actual")
+        
+        # Plot 2: Error
+        self.error_plot = pg.PlotWidget(title="Tracking Error")
+        self.error_plot.showGrid(x=True, y=True)
+        self.error_plot.setLabel('left', 'Error (deg)')
+        self.curve_error = self.error_plot.plot(pen=pg.mkPen('r', width=2), name="Error")
+
+        bottom_plot_splitter.addWidget(self.tracking_plot)
+        bottom_plot_splitter.addWidget(self.error_plot)
+        
+        # Add plots to vertical splitter
+        self.right_splitter.addWidget(bottom_plot_splitter)
+
+        # Set initial sizes for vertical splitter (View gets more space)
+        self.right_splitter.setSizes([600, 250])
+
+        self.outer_splitter.addWidget(self.right_splitter)
+        self.outer_splitter.setSizes([300, 900]) # Sidebar 300px, Right 900px
+
+        # Set Main Layout
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(self.outer_splitter)
+        layout.setContentsMargins(0,0,0,0)
 
     def setup_scene(self):
         """Initializes the 3D world: Grids, Frames, Mirrors, Laser."""
-
-        # --- 0. Background Grids (The "World Frame") ---
-
-        # X-Plane Grid
-        gx = gl.GLGridItem()
-        gx.setSize(x=100, y=100) # Adjust Size
-        gx.setSpacing(x=10, y=10)
-        gx.rotate(90, 0, 1, 0)
-        gx.translate(-50, 0, 0) # Adjust Position
+        
+        # 1. Grids
+        gx = gl.GLGridItem(); gx.setSize(100, 100); gx.setSpacing(10, 10)
+        gx.rotate(90, 0, 1, 0); gx.translate(-50, 0, 0)
         self.view.addItem(gx)
-
-        # Y-Plane Grid
-        gy = gl.GLGridItem()
-        gy.setSize(x=100, y=100)
-        gy.setSpacing(x=10, y=10)
-        gy.rotate(90, 1, 0, 0)
-        gy.translate(0, -50, 0)
-        self.view.addItem(gy)
-
-        # Z-Plane Grid (Floor)
-        gz = gl.GLGridItem()
-        gz.setSize(x=100, y=100)
-        gz.setSpacing(x=10, y=10)
+        
+        gz = gl.GLGridItem(); gz.setSize(100, 100); gz.setSpacing(10, 10)
         gz.translate(0, 0, -50)
         self.view.addItem(gz)
 
-        """Adds the axes and cuboids to the 3D view."""
-        axis_length = 60.0
-        tick_spacing = 10.0 # Changed to 10mm so numbers aren't too crowded
-        
-        # 1. Scanner Axis Lines (RGB)
-        # UPDATED: Calling geometry.axis_line
-        self.view.addItem(geometry.axis_line([0, 0, 0], [axis_length, 0, 0], (1, 0, 0, 1))) # X - Red
-        self.view.addItem(geometry.axis_line([0, 0, 0], [0, axis_length, 0], (0, 1, 0, 1))) # Y - Green
-        self.view.addItem(geometry.axis_line([0, 0, 0], [0, 0, axis_length], (0, 0, 1, 1))) # Z - Blue
+        # 2. Axes
+        self.view.addItem(geometry.axis_line([0,0,0], [60,0,0], (1,0,0,1)))
+        self.view.addItem(geometry.axis_line([0,0,0], [0,60,0], (0,1,0,1)))
+        self.view.addItem(geometry.axis_line([0,0,0], [0,0,60], (0,0,1,1)))
 
-        # 2. Add Ticks (White lines)
-        # UPDATED: Calling geometry.create_axis_ticks
-        all_ticks = (geometry.create_axis_ticks('x', axis_length, tick_spacing) + 
-                     geometry.create_axis_ticks('y', axis_length, tick_spacing) + 
-                     geometry.create_axis_ticks('z', axis_length, tick_spacing))
-        for tick in all_ticks: 
-            self.view.addItem(tick)
+        # 3. Mirrors (Initial State)
+        # Red Mirror (X)
+        mesh1 = geometry.create_cuboid(20, 10, 1)
+        self.objects["Cuboid 1 (Red)"] = GLMeshItem(meshdata=mesh1, smooth=False, 
+            drawEdges=True, color=(1, 0, 0, 0.6), shader='balloon')
+        self.view.addItem(self.objects["Cuboid 1 (Red)"])
 
-        # 3. Add Numbers (10, 20, 30...)  <-- THIS BLOCK WAS MISSING
-        # all_numbers = (geometry.create_axis_numbers('x', axis_length, tick_spacing) + 
-        #                geometry.create_axis_numbers('y', axis_length, tick_spacing) + 
-        #                geometry.create_axis_numbers('z', axis_length, tick_spacing))
-        # for number in all_numbers: 
-        #     self.view.addItem(number)
+        # Blue Mirror (Y/Z)
+        mesh2 = geometry.create_cuboid(10, 20, 1)
+        self.objects["Cuboid 2 (Blue)"] = GLMeshItem(meshdata=mesh2, smooth=False, 
+            drawEdges=True, color=(0, 0, 1, 0.6), shader='balloon')
+        self.view.addItem(self.objects["Cuboid 2 (Blue)"])
 
-        # 4. Add Main Labels (X, Y, Z) at the tips
-        # CHANGE HERE: Use 255 for Red/Green/Blue
-        x_label = GLTextItem(text='X', color=(255, 0, 0, 255)) 
-        x_label.setData(pos=np.array([axis_length + 2, 0, 0]))
-        x_label.setGLOptions('translucent')
-        self.view.addItem(x_label)
-        
-        y_label = GLTextItem(text='Y', color=(0, 255, 0, 255))
-        y_label.setData(pos=np.array([0, axis_length + 2, 0]))
-        y_label.setGLOptions('translucent')
-        self.view.addItem(y_label)
-        
-        z_label = GLTextItem(text='Z', color=(0, 0, 255, 255))
-        z_label.setData(pos=np.array([0, 0, axis_length + 2]))
-        z_label.setGLOptions('translucent')
-        self.view.addItem(z_label)
-
-        # UPDATED: Calling geometry.create_cuboid
-        mesh1 = geometry.create_cuboid(length=20, breadth=10, height=1)
-        cuboid1 = GLMeshItem(meshdata=mesh1, smooth=False, drawFaces=True,
-                             drawEdges=True, edgeColor=(1, 1, 1, 1), color=(1, 0, 0, 0.7))
-        self.objects["Cuboid 1 (Red)"] = cuboid1
-        self.view.addItem(cuboid1)
-
-        mesh2 = geometry.create_cuboid(length=10, breadth=20, height=1)
-        cuboid2 = GLMeshItem(meshdata=mesh2, smooth=False, drawFaces=True,
-                             drawEdges=True, edgeColor=(1, 1, 1, 1), color=(0, 0, 1, 0.7))
-        self.objects["Cuboid 2 (Blue)"] = cuboid2
-        self.view.addItem(cuboid2)
-
-
-        # Laser Line 
+        # 4. Laser Lines
         self.laser_plot = GLLinePlotItem(pos=np.array([[0,0,0], [0,0,0]]), color=(1, 0, 1, 1), width=3, antialias=True)
         self.view.addItem(self.laser_plot)
-
-        # 2. Source (Shooting from Left -X towards Origin)
         self.laser_source = np.array([50, 0, 0])
 
-        # 3. The Screen at Z=50 (A Green Grid)
+        # 5. Screen & Trace
         self.screen_grid = gl.GLGridItem()
-        self.screen_grid.setSize(x=70, y=70)
-        self.screen_grid.setSpacing(x=3, y=3)
-        # Rotate to face the beam (Standard grid is on XY plane, we assume screen is flat on XY at Z=50)
-        self.screen_grid.translate(0, 20, 50) 
+        self.screen_grid.setSize(70, 70); self.screen_grid.setSpacing(5, 5)
+        self.screen_grid.translate(0, 20, 50)
         self.view.addItem(self.screen_grid)
 
-        # --- NEW: TRACE PLOT ---
-        # A green line that remembers where the laser hit
         self.trace_plot = GLLinePlotItem(pos=np.array([[0,0,0]]), color=(0, 1, 0, 1), width=2, antialias=True)
         self.view.addItem(self.trace_plot)
-        
-        # List to store history
         self.trace_points = []
+        
+        # Initial Transform Update
+        self.update_visuals()
 
-    def _create_controls(self):
-        """Creates the simplified control panel with an animation button and angle displays."""
-        control_container = QtWidgets.QWidget()
-        control_container.setMaximumWidth(250)
-        control_layout = QtWidgets.QVBoxLayout()
-        control_container.setLayout(control_layout)
+    def log(self, message):
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.console.append(f"[{timestamp}] {message}")
+        sb = self.console.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
-        # --- CHANGE 1: ADD LABELS FOR ANGLE DISPLAY ---
-        title_font = QtGui.QFont()
-        title_font.setBold(True)
-        title_label = QtWidgets.QLabel("Real-time Angles")
-        title_label.setFont(title_font)
-        
-        self.red_angle_label = QtWidgets.QLabel("Red (X-Rot): 0.0°")
-        self.blue_angle_label = QtWidgets.QLabel("Blue (Z-Rot): 0.0°")
-        
-        control_layout.addWidget(title_label)
-        control_layout.addWidget(self.red_angle_label)
-        control_layout.addWidget(self.blue_angle_label)
-        control_layout.addSpacing(20)
+    # --- SIMULATION CONTROL ---
 
-        # Animation Button
-        self.animation_button = QtWidgets.QPushButton("Start Plotting")
-        self.animation_button.clicked.connect(self._toggle_animation)
-        control_layout.addWidget(self.animation_button)
+    def start_simulation(self):
+        self.simulation_active = True
+        self.start_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
         
-        control_layout.addStretch()
-        return control_container
+        # Lock Parameters
+        self.inertia_input.setEnabled(False)
+        self.damping_input.setEnabled(False)
+        
+        # Apply Parameters to Plant
+        self.apply_parameters()
+        
+        # Reset Data
+        self.trace_points = []
+        self.time_elapsed = 0.0
+        self.data_time[:] = 0
+        self.data_target_x[:] = 0
+        self.data_actual_x[:] = 0
+        self.data_error_x[:] = 0
+        
+        self.timer.start()
+        self.log("Simulation Started.")
 
-    def _toggle_animation(self):
-        """Starts or stops the animation timer."""
-        if self.timer.isActive():
-            self.timer.stop()
-            self.animation_button.setText("Start Plotting")
-        else:
-            self.timer.start(10) # Update every 10 ms
-            self.animation_button.setText("Stop Animation")
+    def stop_simulation(self):
+        self.simulation_active = False
+        self.timer.stop()
+        self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        
+        # Unlock Parameters
+        self.inertia_input.setEnabled(True)
+        self.damping_input.setEnabled(True)
+        
+        self.log("Simulation Stopped.")
 
-    def _animate_step(self):
-        """Physics Time Step."""
+    def apply_parameters(self):
+        # Push UI values to the Physics Object
+        # Note: We update both axes with the same physics for now
+        J = self.inertia_input.value()
+        b = self.damping_input.value()
+        k = self.stiffness_input.value()
         
-        # 1. Create a Sine Wave Signal to test the physics
-        # We use current time to drive a sine wave
-        import time
-        t = time.time()
+        self.galvo_system.galvo_x.J = J
+        self.galvo_system.galvo_x.b = b
+        self.galvo_system.galvo_x.k = k
         
-        target_x = 10.0 * np.sin(t * 2) # Swing +/- 10 degrees, 2 rad/sec
-        target_y = 10.0 * np.cos(t * 2)
+        self.galvo_system.galvo_y.J = J
+        self.galvo_system.galvo_y.b = b
+        self.galvo_system.galvo_y.k = k
+
+        self.log(f"Params Applied: J={J}, b={b}, k={k}")
+
+    # --- MAIN LOOP ---
+
+    def simulation_step(self):
+        if not self.simulation_active: return
+
+        dt = 0.016 # 16ms
+        self.time_elapsed += dt
+
+        # 1. Generate Signal (Sine Wave)
+        freq = self.freq_input.value()
+        amp = self.amp_input.value()
         
-        # 2. Send signal to the Plant
+        target_x = amp * np.sin(2 * np.pi * freq * self.time_elapsed)
+        target_y = amp * np.cos(2 * np.pi * freq * self.time_elapsed)
+
+        # 2. Physics Update
         self.galvo_system.set_target(target_x, target_y)
+        self.galvo_system.update() # Note: Your plant_model currently assumes hardcoded dt=0.01, we might want to pass dt later
         
-        # 3. Update Physics
-        self.galvo_system.update()
-        
-        # 4. Update Visuals
-        self.update_transforms()
+        # 3. Visual Update (Mirrors & Lasers)
+        self.update_visuals()
 
+        # 4. Plot Update
+        # Roll data arrays (Shift left, add new at right)
+        self.data_time = np.roll(self.data_time, -1)
+        self.data_target_x = np.roll(self.data_target_x, -1)
+        self.data_actual_x = np.roll(self.data_actual_x, -1)
+        self.data_error_x = np.roll(self.data_error_x, -1)
+
+        current_angle_x = self.galvo_system.state["Cuboid 1 (Red)"]['current_angle']
         
-    def update_transforms(self):
-        # 1. Get Angles
+        self.data_time[-1] = self.time_elapsed
+        self.data_target_x[-1] = target_x
+        self.data_actual_x[-1] = current_angle_x
+        self.data_error_x[-1] = target_x - current_angle_x
+
+        # Update Curves
+        self.curve_target.setData(self.data_time, self.data_target_x)
+        self.curve_actual.setData(self.data_time, self.data_actual_x)
+        self.curve_error.setData(self.data_time, self.data_error_x)
+
+    def update_visuals(self):
+        # Retrieve State
         red_current = self.galvo_system.state["Cuboid 1 (Red)"]['current_angle']
         blue_current = self.galvo_system.state["Cuboid 2 (Blue)"]['current_angle']
         
-        self.red_angle_label.setText(f"Red: {red_current:.1f}°")
-        self.blue_angle_label.setText(f"Blue: {blue_current:.1f}°")
-
-        # =========================================================
-        # 2. UPDATE BLUE MIRROR (Origin)
-        # =========================================================
+        # --- 1. Update Matrix Transforms (Kinematics) ---
+        
+        # Blue Mirror (Origin, Z-Rotation)
         b_pos = self.galvo_system.static_states["Cuboid 2 (Blue)"]['pos']
         b_rest = self.galvo_system.static_states["Cuboid 2 (Blue)"]['rest_rot_z']
         
-        # Physics: Translate -> Rotate Z (Rest + Current)
         m_blue_phys = kinematics.get_model_matrix(b_pos, b_rest + blue_current, [0,0,1])
-        # Visual: Rotate 90 X to make the plate stand up
-        m_blue_vis = kinematics.get_model_matrix([0,0,0], 90, [1,0,0])
-        
+        m_blue_vis = kinematics.get_model_matrix([0,0,0], 90, [1,0,0]) # Visual correction to stand up
         matrix_blue = m_blue_phys @ m_blue_vis
         self.objects["Cuboid 2 (Blue)"].setTransform(pg.Transform3D(*matrix_blue.flatten()))
 
-        # =========================================================
-        # 3. UPDATE RED MIRROR (Y=20)
-        # =========================================================
+        # Red Mirror (Y=20, X-Rotation)
         r_pos = self.galvo_system.static_states["Cuboid 1 (Red)"]['pos']
         r_rest = self.galvo_system.static_states["Cuboid 1 (Red)"]['rest_rot_x']
         
-        # Physics: Translate -> Rotate X (Rest + Current)
-        # Red mirror naturally tilts correctly with X rotation
         matrix_red = kinematics.get_model_matrix(r_pos, r_rest + red_current, [1,0,0])
-        
         self.objects["Cuboid 1 (Red)"].setTransform(pg.Transform3D(*matrix_red.flatten()))
 
-        # =========================================================
-        # 4. RAY TRACING
-        # =========================================================
+        # --- 2. Ray Tracing (Physics) ---
         
-        # --- Path 1: Source -> Blue ---
-        p1 = np.array(b_pos) 
+        # Path 1: Source -> Blue
+        p1 = np.array(b_pos)
         dir_1 = physics.normalize(p1 - self.laser_source)
         
-        # Normal 1 (Blue)
-        # Transform local Z [0,0,1] using the Full Blue Matrix
+        # Normal 1
         n1 = kinematics.apply_transform_to_vector(matrix_blue, [0, 0, 1])
         n1 = physics.normalize(n1)
         r1 = physics.calculate_reflection(dir_1, n1)
 
-        # --- Path 2: Blue -> Red ---
+        # Path 2: Blue -> Red
         plane_point_red = np.array(r_pos)
-        # Red mirror is a wall facing -Y
-        plane_normal_red = np.array([0, -1, 0]) 
-        
+        plane_normal_red = np.array([0, -1, 0]) # Red mirror faces -Y
         p2, t2 = physics.intersect_line_plane(p1, r1, plane_point_red, plane_normal_red)
-        
-        # Miss Checks
-        if t2 <= 0: # Beam went backward or parallel
-             self.laser_plot.setData(pos=np.array([self.laser_source, p1, p1 + r1*20]))
-             return
-        
-        if abs(p2[0]) > 10.0: # Width Check (Mirror Size 20)
-            self.laser_plot.setData(pos=np.array([self.laser_source, p1, p2, p2 + r1*20]))
+
+        # Draw partial beam if miss
+        if t2 <= 0 or abs(p2[0]) > 10.0:
+            self.laser_plot.setData(pos=np.array([self.laser_source, p1, p1 + r1*20]))
             return
 
-        # --- Path 3: Red -> Screen ---
-        # Normal 2 (Red)
+        # Path 3: Red -> Screen
         n2 = kinematics.apply_transform_to_vector(matrix_red, [0, 0, 1])
         n2 = physics.normalize(n2)
         r2 = physics.calculate_reflection(r1, n2)
-        
-        # Screen Intersection (Z=50)
+
         plane_point_screen = np.array([0, 0, 50])
         plane_normal_screen = np.array([0, 0, -1])
-        
         p3, t3 = physics.intersect_line_plane(p2, r2, plane_point_screen, plane_normal_screen)
 
-        if t3 <= 0: p3 = p2 + r2 * 20
+        if t3 <= 0: p3 = p2 + r2 * 20 # Infinite ray if miss
         
-        # --- DRAW LASER ---
         self.laser_plot.setData(pos=np.array([self.laser_source, p1, p2, p3]))
 
-        # --- NEW: DRAW TRACE ON SCREEN ---
-        # Only add point if we actually hit the screen area (Z approx 50)
-        if t3 > 0:
-            # Store the point
+        # --- 3. Trace Logic ---
+        if self.simulation_active and t3 > 0:
             self.trace_points.append(p3)
-            
-            # Optimization: Keep only last 500 points so memory doesn't explode
-            if len(self.trace_points) > 500:
-                self.trace_points.pop(0)
-            
-            # Update the visual line
+            if len(self.trace_points) > 500: self.trace_points.pop(0)
             if len(self.trace_points) > 1:
-                pts_array = np.array(self.trace_points)
-                self.trace_plot.setData(pos=pts_array)
+                self.trace_plot.setData(pos=np.array(self.trace_points))
