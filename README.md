@@ -22,4 +22,4 @@ A **custom differential photodiode position sensor** is being developed for feed
 ![Demo video](https://github.com/user-attachments/assets/08d6f766-7242-4b48-9dd1-6b7cfafa9d73)
 
 **Custom Physics Engine To Simulate Ray-plane intersection, Forward Kinematics, Inverse Kinematics, Control Strategies**
-![phy_engine_demo](https://github.com/user-attachments/assets/0dd3775c-a391-43af-9737-bf4b191d2b69)
+![phy_engine_demo](https://github.com/user-attachments/assets/9d930965-d716-4eb2-a62a-6031a49f775e)
